@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Playfair+Display:wght@700;800&family=Sora:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --ink-900: #101828;
+  --ink-700: #344054;
+  --line-soft: rgba(16, 24, 40, 0.08);
+  --card-glow: 0 30px 60px rgba(16, 24, 40, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Sora", "Manrope", sans-serif;
+  color: var(--ink-900);
+  background:
+    radial-gradient(700px 380px at 5% -10%, rgba(59, 130, 246, 0.18), transparent 60%),
+    radial-gradient(650px 340px at 95% 0%, rgba(20, 184, 166, 0.18), transparent 60%),
+    linear-gradient(170deg, #f7f8ff 0%, #f2f4f7 46%, #eef2ff 100%);
+}
+
+.app-stage::before,
+.app-stage::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  filter: blur(35px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.app-stage::before {
+  width: 220px;
+  height: 220px;
+  top: 18px;
+  left: -80px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.30);
+}
+
+.app-stage::after {
+  width: 240px;
+  height: 240px;
+  bottom: -80px;
+  right: -90px;
+  border-radius: 999px;
+  background: rgba(8, 145, 178, 0.32);
+}
+
+.phone-shell {
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.99) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 34px;
+  box-shadow: var(--card-glow);
+  backdrop-filter: blur(8px);
+}
+
+.screen-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+}
+
+.screen-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.screen-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+
