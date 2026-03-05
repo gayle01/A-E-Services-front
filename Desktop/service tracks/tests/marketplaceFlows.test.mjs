@@ -9,13 +9,13 @@ import {
 
 test('authenticateUser signup rejects duplicate email', () => {
   const state = {
-    authUsers: [{ id: 1, email: 'demo@trackflow.app', password: 'x', role: 'client' }]
+    authUsers: [{ id: 1, email: 'demo@taskflow.app', password: 'x', role: 'client' }]
   };
 
   const result = authenticateUser(state, {
     mode: 'signup',
     role: 'client',
-    email: 'demo@trackflow.app',
+    email: 'demo@taskflow.app',
     password: 'secret',
     name: 'Demo User'
   });

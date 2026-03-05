@@ -80,8 +80,17 @@ function WorkerAssignedWorkScreen({
     };
 
     onUpdateActiveJob?.(selectedActiveJob.id, updates);
+    if (isCompany && activeJobDraft.assignedWorkerId && Number(activeJobDraft.assignedWorkerId) !== Number(selectedActiveJob.assignedWorkerId || 0)) {
+      onAssignWorker?.(selectedActiveJob.id, activeJobDraft.assignedWorkerId);
+    }
 
-    const nextJob = { ...selectedActiveJob, ...updates };
+    const selectedWorker = workers.find((w) => Number(w.id) === Number(activeJobDraft.assignedWorkerId));
+    const nextJob = {
+      ...selectedActiveJob,
+      ...updates,
+      assignedWorkerId: activeJobDraft.assignedWorkerId ? Number(activeJobDraft.assignedWorkerId) : selectedActiveJob.assignedWorkerId,
+      assignedWorkerName: selectedWorker?.name || selectedActiveJob.assignedWorkerName
+    };
     setSelectedActiveJob(nextJob);
     setActiveJobDraft(nextJob);
     setIsEditingActiveJob(false);
@@ -349,11 +358,12 @@ function WorkerAssignedWorkScreen({
             {(() => {
               const isCompanyAssignedJob = isCompany && selectedActiveJob.status === 'Assigned';
               const isCompanyAssignedJobLocked = isCompanyAssignedJob && isJobLockedFromClientFlow(selectedActiveJob);
+              const canWorkerEditProof = isWorkerView && selectedActiveJob.status === 'Active';
               return (
                 <>
             <div className="mb-4">
               <h3 className="text-lg font-extrabold text-gray-900">{isRescheduling ? 'Request Reschedule' : selectedActiveJob.status === 'Assigned' ? 'Job Details' : 'Active Job Details'}</h3>
-              {isCompany && !isCompanyAssignedJob && !isEditingActiveJob && !isRescheduling && selectedActiveJob.status !== 'Reschedule Requested' && !isJobLockedFromClientFlow(selectedActiveJob) ? (
+              {isCompany && !isEditingActiveJob && !isRescheduling && selectedActiveJob.status !== 'Reschedule Requested' && !isJobLockedFromClientFlow(selectedActiveJob) ? (
                 <button
                   type="button"
                   onClick={() => setIsEditingActiveJob(true)}
@@ -361,7 +371,7 @@ function WorkerAssignedWorkScreen({
                 >
                   Edit Job Details
                 </button>
-              ) : isCompany && !isEditingActiveJob && !isCompanyAssignedJob && isJobLockedFromClientFlow(selectedActiveJob) ? (
+              ) : isCompany && !isEditingActiveJob && isJobLockedFromClientFlow(selectedActiveJob) ? (
                 <p className="mt-3 text-xs font-semibold text-gray-500 rounded-xl border border-gray-200 bg-gray-50 p-3">
                   This job is closed. Completed/verified/rejected jobs are locked from further edits.
                 </p>
@@ -510,7 +520,7 @@ function WorkerAssignedWorkScreen({
               </p>
               {selectedActiveJob.assignedWorkerName && <p className="text-sm text-gray-700"><span className="font-semibold text-gray-900">Assigned To:</span> {selectedActiveJob.assignedWorkerName}</p>}
             </div>
-            {isCompanyAssignedJob && (
+            {isCompany && (isCompanyAssignedJob || isEditingActiveJob) && (
               <div className="mb-4">
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Assign to:</label>
                 <select
@@ -526,6 +536,9 @@ function WorkerAssignedWorkScreen({
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
                 </select>
+                {workers.length === 0 && (
+                  <p className="text-[11px] text-amber-600 mt-1">No workers available yet. Add workers first.</p>
+                )}
               </div>
             )}
 
@@ -548,7 +561,7 @@ function WorkerAssignedWorkScreen({
 
             <div className="space-y-2 mb-4">
               <h4 className="text-sm font-bold text-gray-900">Proof Attachments</h4>
-              {isWorkerView && (
+              {canWorkerEditProof && (
                 <div className="space-y-2">
                   <button
                     type="button"
@@ -581,7 +594,7 @@ function WorkerAssignedWorkScreen({
                         alt={`Proof ${index + 1}`}
                         className="w-full h-24 object-cover rounded-lg"
                       />
-                      {isWorkerView && (
+                      {canWorkerEditProof && (
                         <button
                           type="button"
                           onClick={() =>
@@ -667,7 +680,7 @@ function WorkerAssignedWorkScreen({
                   Request Reschedule
                 </button>
                 </>
-              ) : selectedActiveJob.status !== 'Reschedule Requested' && isWorkerView && (
+              ) : selectedActiveJob.status === 'Active' && selectedActiveJob.status !== 'Reschedule Requested' && isWorkerView && (
               <button
                 type="button"
                 onClick={() => {
@@ -676,10 +689,7 @@ function WorkerAssignedWorkScreen({
                     window.alert('Upload at least one proof image before submitting.');
                     return;
                   }
-                  onUpdateActiveJob?.(selectedActiveJob.id, {
-                    photos
-                  });
-                  onSubmitProgress?.(selectedActiveJob.id);
+                  onSubmitProgress?.(selectedActiveJob.id, { photos });
                   closeActiveJobDetails();
                 }}
                 className="w-full bg-blue-500 text-white font-semibold py-2.5 rounded-xl hover:bg-blue-600 transition"

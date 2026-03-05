@@ -1,4 +1,4 @@
-﻿import { BarChart3, CalendarDays, CheckCircle2, ChevronDown, ChevronUp, CircleX, Clock3, Timer, TriangleAlert, User } from 'lucide-react';
+﻿import { BarChart3, CalendarDays, CheckCircle2, ChevronDown, ChevronUp, CircleX, Clock3, Copy, ExternalLink, Eye, Timer, TriangleAlert, User, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const statusTabs = ['All', 'Scheduled', 'In Progress', 'Submitted', 'Verified', 'Rejected', 'Missed'];
@@ -22,6 +22,15 @@ function statusClasses(status) {
   return 'bg-gray-50 text-gray-700 border-gray-200';
 }
 
+function occurrenceCardClasses(status) {
+  if (status === 'Verified') return 'border-green-200 bg-green-50/70';
+  if (status === 'Submitted') return 'border-blue-200 bg-blue-50/70';
+  if (status === 'In Progress') return 'border-indigo-200 bg-indigo-50/70';
+  if (status === 'Rejected') return 'border-red-200 bg-red-50/75';
+  if (status === 'Missed') return 'border-orange-200 bg-orange-50/75';
+  return 'border-gray-200 bg-white/90';
+}
+
 function formatActionTime(isoValue) {
   if (!isoValue) return '';
   try {
@@ -39,6 +48,7 @@ function formatActionTime(isoValue) {
 }
 
 function frequencyLabel(value) {
+  if (value === 'Daily') return 'Every day';
   if (value === 'Biweekly') return 'Every 2 weeks';
   if (value === 'Monthly') return 'Once a month';
   return 'Every week';
@@ -55,6 +65,8 @@ function ContractsScreen({
   onSelectContract,
   onCreateYearlyContract,
   onDeleteContract,
+  onGenerateInvite,
+  inviteLinksByContractId = {},
   onStartOccurrence,
   onSubmitOccurrence,
   onApproveOccurrence,
@@ -72,13 +84,17 @@ function ContractsScreen({
   const [createDurationValue, setCreateDurationValue] = useState('12');
   const [createDurationUnit, setCreateDurationUnit] = useState('months');
   const [createFrequency, setCreateFrequency] = useState('Weekly');
-  const [createWeekday, setCreateWeekday] = useState('2');
+  const [createWeekdays, setCreateWeekdays] = useState(['2']);
+  const [createShift, setCreateShift] = useState('Morning');
   const [createStartDate, setCreateStartDate] = useState('');
   const [createWorkerName, setCreateWorkerName] = useState(workerOptions[0] || '');
   const [createLocation, setCreateLocation] = useState('');
   const [createError, setCreateError] = useState('');
   const [expandedOccurrenceId, setExpandedOccurrenceId] = useState(null);
   const [visibleCount, setVisibleCount] = useState(8);
+  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+  const [previewContract, setPreviewContract] = useState(null);
+  const [inviteDialog, setInviteDialog] = useState(null);
 
   const getWorkerDraft = (occurrence) => {
     const legacyPhotos = [occurrence.beforePhotoUrl, occurrence.afterPhotoUrl].filter(Boolean);
@@ -175,7 +191,22 @@ function ContractsScreen({
             return monthLabel === activeMonth;
           });
 
-    return [...byMonth].sort((a, b) => new Date(b.dateIso) - new Date(a.dateIso));
+    const now = Date.now();
+    const currentStatuses = new Set(['In Progress', 'Submitted']);
+
+    return [...byMonth].sort((a, b) => {
+      const aCurrent = currentStatuses.has(a.status) ? 1 : 0;
+      const bCurrent = currentStatuses.has(b.status) ? 1 : 0;
+      if (aCurrent !== bCurrent) return bCurrent - aCurrent;
+
+      const aDate = new Date(a.dateIso).getTime();
+      const bDate = new Date(b.dateIso).getTime();
+      const aDistance = Math.abs(aDate - now);
+      const bDistance = Math.abs(bDate - now);
+      if (aDistance !== bDistance) return aDistance - bDistance;
+
+      return bDate - aDate;
+    });
   }, [occurrences, activeStatus, activeMonth]);
   const visibleOccurrences = useMemo(
     () => filteredOccurrences.slice(0, visibleCount),
@@ -193,11 +224,24 @@ function ContractsScreen({
 
   const createSummary = useMemo(() => {
     const duration = Number(createDurationValue || 0);
-    const day = weekdayOptions.find((item) => item.value === String(createWeekday))?.label || 'selected day';
+    const dayLabels = weekdayOptions
+      .filter((item) => createWeekdays.includes(item.value))
+      .map((item) => item.label)
+      .join(', ');
     if (!duration || duration <= 0) return '';
     const unitLabel = duration === 1 ? createDurationUnit.slice(0, -1) : createDurationUnit;
-    return `${frequencyLabel(createFrequency)}, on ${day}, for ${duration} ${unitLabel}.`;
-  }, [createDurationValue, createDurationUnit, createFrequency, createWeekday]);
+    const dayPhrase = createFrequency === 'Daily' ? 'every day' : (dayLabels || 'selected days');
+    return `${frequencyLabel(createFrequency)}, on ${dayPhrase}, ${createShift} shift, for ${duration} ${unitLabel}.`;
+  }, [createDurationValue, createDurationUnit, createFrequency, createWeekdays, createShift]);
+
+  const toggleCreateWeekday = (dayValue) => {
+    setCreateWeekdays((prev) => {
+      if (prev.includes(dayValue)) {
+        return prev.length === 1 ? prev : prev.filter((value) => value !== dayValue);
+      }
+      return [...prev, dayValue];
+    });
+  };
 
   useEffect(() => {
     if (initialExpandedOccurrenceId) return;
@@ -212,9 +256,25 @@ function ContractsScreen({
     setActiveMonth('All');
     setActiveStatus('Submitted');
     setVisibleCount(1000);
+    setIsTimelineOpen(true);
     setExpandedOccurrenceId(initialExpandedOccurrenceId);
     onFocusedOccurrenceHandled?.();
   }, [initialExpandedOccurrenceId, occurrences, onFocusedOccurrenceHandled]);
+
+  const openContractPreview = (contract) => {
+    if (!contract) return;
+    setPreviewContract(contract);
+  };
+
+  const openInviteDialog = (contract) => {
+    const generatedLink = onGenerateInvite?.(contract.id);
+    const fallbackLink = inviteLinksByContractId[contract.id];
+    const link = generatedLink || fallbackLink || '';
+    setInviteDialog({
+      contractTitle: contract.title,
+      link
+    });
+  };
 
   return (
     <div className="p-6 pb-24">
@@ -280,27 +340,37 @@ function ContractsScreen({
                 onChange={(event) => setCreateFrequency(event.target.value)}
                 className="w-full mt-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
               >
+                <option value="Daily">Every day (Daily)</option>
                 <option value="Weekly">Every week (Weekly)</option>
                 <option value="Biweekly">Every 2 weeks (Biweekly)</option>
                 <option value="Monthly">Once per month (Monthly)</option>
               </select>
               <p className="text-[11px] text-gray-500 mt-1">
-                `Weekly` = every week. `Biweekly` = every two weeks.
+                Daily, weekly, biweekly, or monthly recurrence.
               </p>
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-gray-700">Service Day</label>
-              <select
-                value={createWeekday}
-                onChange={(event) => setCreateWeekday(event.target.value)}
-                className="w-full mt-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
-              >
-                {weekdayOptions.map((day) => (
-                  <option key={day.value} value={day.value}>
-                    {day.label}
-                  </option>
-                ))}
-              </select>
+              <label className="text-[11px] font-semibold text-gray-700">Service Days</label>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {weekdayOptions.map((day) => {
+                  const isSelected = createWeekdays.includes(day.value);
+                  return (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => toggleCreateWeekday(day.value)}
+                      className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold border transition ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {day.label.slice(0, 3)}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">Select one or multiple days.</p>
             </div>
             <div>
               <label className="text-[11px] font-semibold text-gray-700">Start Date</label>
@@ -310,6 +380,18 @@ function ContractsScreen({
                 onChange={(event) => setCreateStartDate(event.target.value)}
                 className="w-full mt-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
               />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-gray-700">Shift</label>
+              <select
+                value={createShift}
+                onChange={(event) => setCreateShift(event.target.value)}
+                className="w-full mt-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+              >
+                <option value="Morning">Morning</option>
+                <option value="Afternoon">Afternoon</option>
+                <option value="Evening">Evening</option>
+              </select>
             </div>
             <div>
               <label className="text-[11px] font-semibold text-gray-700">Worker</label>
@@ -371,7 +453,8 @@ function ContractsScreen({
                 durationValue: Number(createDurationValue),
                 durationUnit: createDurationUnit,
                 frequency: createFrequency,
-                weekday: Number(createWeekday),
+                weekdays: createWeekdays.map((value) => Number(value)),
+                shift: createShift,
                 startDate: createStartDate,
                 workerName: createWorkerName,
                 location: createLocation
@@ -381,7 +464,8 @@ function ContractsScreen({
               setCreateDurationValue('12');
               setCreateDurationUnit('months');
               setCreateFrequency('Weekly');
-              setCreateWeekday('2');
+              setCreateWeekdays(['2']);
+              setCreateShift('Morning');
               setCreateStartDate('');
               setCreateWorkerName(workerOptions[0] || '');
               setCreateLocation('');
@@ -393,6 +477,8 @@ function ContractsScreen({
         </section>
       )}
 
+      {!showCreateForm && (
+      <>
       <section className="mb-5 rounded-2xl border border-white bg-white/85 p-4 shadow-[0_8px_20px_rgba(15,23,42,0.06)]">
         <div className="flex items-center gap-2 mb-2">
           <BarChart3 size={16} className="text-blue-500" />
@@ -430,7 +516,7 @@ function ContractsScreen({
             {contracts.map((contract) => (
               <div
                 key={contract.id}
-                onClick={() => onSelectContract?.(contract.id)}
+                onClick={() => openContractPreview(contract)}
                 className={`w-full text-left rounded-2xl border p-3 transition cursor-pointer ${
                   contract.id === selectedContractId
                     ? 'border-blue-300 bg-blue-50'
@@ -444,9 +530,17 @@ function ContractsScreen({
                     <p className="text-xs text-gray-500 mt-1">
                       {contract.startDate} - {contract.endDate} · {frequencyLabel(contract.frequency)}
                     </p>
-                    {Number.isInteger(Number(contract.weekday)) && (
+                    {((Array.isArray(contract.weekdays) && contract.weekdays.length > 0) || Number.isInteger(Number(contract.weekday))) && (
                       <p className="text-[11px] text-gray-500 mt-1">
-                        Service day: {weekdayOptions.find((item) => item.value === String(contract.weekday))?.label || 'Not set'}
+                        Service day: {(Array.isArray(contract.weekdays) && contract.weekdays.length > 0 ? contract.weekdays : [contract.weekday])
+                          .map((value) => weekdayOptions.find((item) => item.value === String(value))?.label)
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                    )}
+                    {contract.shift && (
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        Shift: {contract.shift}
                       </p>
                     )}
                     {role === 'company' && (
@@ -455,20 +549,45 @@ function ContractsScreen({
                       </p>
                     )}
                   </div>
-                  {(role === 'client' || role === 'company') && (
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        const confirmed = window.confirm(`Delete "${contract.title}"? This also removes all occurrences.`);
-                        if (!confirmed) return;
-                        onDeleteContract?.(contract.id);
+                        openContractPreview(contract);
                       }}
-                      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 bg-white hover:bg-red-50"
+                      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 inline-flex items-center gap-1"
                     >
-                      Delete
+                      <Eye size={12} />
+                      Preview
                     </button>
-                  )}
+                    {role === 'company' && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openInviteDialog(contract);
+                        }}
+                        className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-white hover:bg-blue-50"
+                      >
+                        Generate Invite
+                      </button>
+                    )}
+                    {(role === 'client' || role === 'company') && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          const confirmed = window.confirm(`Delete "${contract.title}"? This also removes all occurrences.`);
+                          if (!confirmed) return;
+                          onDeleteContract?.(contract.id);
+                        }}
+                        className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 bg-white hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -479,20 +598,31 @@ function ContractsScreen({
       {selectedContract && (
         <section>
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-sm font-bold text-gray-700">Occurrence Timeline</h2>
-            <select
-              value={activeMonth}
-              onChange={(event) => setActiveMonth(event.target.value)}
-              className="text-xs border border-gray-200 rounded-lg bg-white px-2 py-1.5"
+            <button
+              type="button"
+              onClick={() => setIsTimelineOpen((prev) => !prev)}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
             >
-              {monthOptions.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
+              {isTimelineOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              Occurrence Timeline
+            </button>
+            {isTimelineOpen && (
+              <select
+                value={activeMonth}
+                onChange={(event) => setActiveMonth(event.target.value)}
+                className="text-xs border border-gray-200 rounded-lg bg-white px-2 py-1.5"
+              >
+                {monthOptions.map((month) => (
+                  <option key={month} value={month}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
+          {isTimelineOpen && (
+          <>
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {statusTabs.map((tab) => {
               const active = tab === activeStatus;
@@ -535,7 +665,7 @@ function ContractsScreen({
                 const isExpanded = expandedOccurrenceId === occurrence.id;
 
                 return (
-                  <article key={occurrence.id} className="rounded-2xl border border-white bg-white/90 p-4 shadow-[0_8px_20px_rgba(15,23,42,0.06)]">
+                  <article key={occurrence.id} className={`rounded-2xl border p-4 shadow-[0_8px_20px_rgba(15,23,42,0.06)] ${occurrenceCardClasses(occurrence.status)}`}>
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div>
                         <p className="text-sm font-bold text-gray-900">{occurrence.title || selectedContract.title}</p>
@@ -824,12 +954,148 @@ function ContractsScreen({
               )}
             </div>
           )}
+          </>
+          )}
         </section>
+      )}
+      </>
+      )}
+
+      {previewContract && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl overflow-hidden bg-white shadow-2xl">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-700 px-5 py-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold text-blue-100 uppercase tracking-wide">Contract Preview</p>
+                <h3 className="text-xl font-extrabold text-white mt-1">{previewContract.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewContract(null)}
+                className="w-8 h-8 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="p-5">
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Location</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{previewContract.location || 'Not set'}</p>
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Frequency</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{frequencyLabel(previewContract.frequency)}</p>
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Start Date</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{previewContract.startDate || '--'}</p>
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">End Date</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{previewContract.endDate || '--'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-sm text-gray-700">
+                {((Array.isArray(previewContract.weekdays) && previewContract.weekdays.length > 0) || Number.isInteger(Number(previewContract.weekday))) && (
+                  <p>
+                    <span className="font-semibold text-gray-900">Service day:</span>{' '}
+                    {(Array.isArray(previewContract.weekdays) && previewContract.weekdays.length > 0 ? previewContract.weekdays : [previewContract.weekday])
+                      .map((value) => weekdayOptions.find((item) => item.value === String(value))?.label)
+                      .filter(Boolean)
+                      .join(', ')}
+                  </p>
+                )}
+                {previewContract.shift && (
+                  <p><span className="font-semibold text-gray-900">Shift:</span> {previewContract.shift}</p>
+                )}
+                {previewContract.workerName && (
+                  <p><span className="font-semibold text-gray-900">Assigned worker:</span> {previewContract.workerName}</p>
+                )}
+                {previewContract.clientName && (
+                  <p><span className="font-semibold text-gray-900">Client:</span> {previewContract.clientName}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-5">
+              <button
+                type="button"
+                onClick={() => setPreviewContract(null)}
+                className="border border-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectContract?.(previewContract.id);
+                  setPreviewContract(null);
+                }}
+                className="bg-blue-600 text-white font-semibold py-2.5 rounded-xl hover:bg-blue-700"
+              >
+                Open Timeline
+              </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {inviteDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Invite Link</p>
+                <h3 className="text-lg font-bold text-gray-900 mt-1">{inviteDialog.contractTitle}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInviteDialog(null)}
+                className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            {inviteDialog.link ? (
+              <>
+                <p className="text-xs text-gray-500 mb-2">Share this test link with the client:</p>
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                  <p className="text-xs text-blue-800 break-all">{inviteDialog.link}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard?.writeText(inviteDialog.link)}
+                    className="border border-blue-200 text-blue-700 font-semibold py-2.5 rounded-xl hover:bg-blue-50 inline-flex items-center justify-center gap-1"
+                  >
+                    <Copy size={14} />
+                    Copy Link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.open(inviteDialog.link, '_blank')}
+                    className="bg-blue-600 text-white font-semibold py-2.5 rounded-xl hover:bg-blue-700 inline-flex items-center justify-center gap-1"
+                  >
+                    <ExternalLink size={14} />
+                    Open Link
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-gray-600">Unable to generate invite link. Please try again.</p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
 export default ContractsScreen;
+
+
 
 

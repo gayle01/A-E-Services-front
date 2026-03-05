@@ -13,8 +13,10 @@ import VerificationReviewScreen from './components/VerificationReviewScreen';
 import WorkerAssignedWorkScreen from './components/WorkerAssignedWorkScreen';
 import WorkerRequestsScreen from './components/WorkerRequestsScreen';
 import ContractsScreen from './components/ContractsScreen';
+import ContractInviteScreen from './components/ContractInviteScreen';
 import WelcomeScreen from './components/WelcomeScreen';
 import AuthPage from './pages/AuthPage';
+import ClientInviteEntryPage from './pages/ClientInviteEntryPage';
 import WorkerSetupPage from './pages/WorkerSetupPage';
 import ClientHomePage from './pages/ClientHomePage';
 import CompanyHomePage from './pages/CompanyHomePage';
@@ -25,7 +27,7 @@ import { pathForScreen, screenFromPath } from './lib/routeMap';
 const seedNotifications = [
   {
     id: 1,
-    title: 'Welcome to TrackFlow',
+    title: 'Welcome to Taskflow',
     body: 'Get started by setting up your profile.',
     time: 'Now',
     unread: true,
@@ -36,6 +38,21 @@ const seedNotifications = [
 
 function loadStoredState() {
   return loadStateFromLocal();
+}
+
+function getInviteTokenFromPath(pathname) {
+  const prefix = '/invite/';
+  if (!String(pathname || '').startsWith(prefix)) return '';
+  return decodeURIComponent(String(pathname || '').slice(prefix.length)).trim();
+}
+
+function createInviteToken() {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array, (value) => value.toString(16).padStart(2, '0')).join('');
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 function formatDateTime(date) {
@@ -95,56 +112,116 @@ function formatContractDate(date) {
   });
 }
 
+function timeRangeForShift(shift) {
+  if (shift === 'Afternoon') return '01:00 PM - 03:00 PM';
+  if (shift === 'Evening') return '05:00 PM - 07:00 PM';
+  return '08:00 AM - 10:00 AM';
+}
+
 function buildYearlyOccurrences(contract, startDate, options = {}) {
   const durationValue = Number(options.durationValue || contract.durationValue || contract.durationMonths || 12);
   const durationUnit = options.durationUnit || contract.durationUnit || 'months';
   const frequency = options.frequency || contract.frequency || 'Weekly';
-  const weekday = Number(options.weekday ?? contract.weekday ?? startDate.getDay());
-  const durationWeeks =
+  const shift = options.shift || contract.shift || 'Morning';
+  const daySource = options.weekdays || contract.weekdays || [options.weekday ?? contract.weekday ?? startDate.getDay()];
+  const serviceDays = Array.from(
+    new Set(
+      (Array.isArray(daySource) ? daySource : [daySource])
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6)
+    )
+  );
+  const selectedWeekdays = serviceDays.length > 0 ? serviceDays : [startDate.getDay()];
+
+  const endDate =
     durationUnit === 'weeks'
-      ? Math.max(1, durationValue)
-      : Math.max(1, Math.ceil((durationValue * 52) / 12));
-  const weeklyCount = Math.max(1, durationWeeks);
-  const count =
-    frequency === 'Biweekly'
-      ? Math.max(1, Math.ceil(weeklyCount / 2))
-      : frequency === 'Monthly'
-        ? Math.max(1, durationUnit === 'weeks' ? Math.ceil(durationWeeks / 4.345) : durationValue)
-        : weeklyCount;
-  const alignedStart = alignToWeekday(startDate, weekday);
+      ? addWeeks(startDate, durationValue)
+      : addMonths(startDate, durationValue);
 
-  const getOccurrenceDate = (index) => {
-    if (frequency === 'Biweekly') return addWeeks(alignedStart, index * 2);
-    if (frequency === 'Monthly') return addMonths(alignedStart, index);
-    return addWeeks(alignedStart, index);
-  };
+  const collectedDates = [];
+  if (frequency === 'Daily') {
+    let cursor = new Date(startDate);
+    while (cursor <= endDate) {
+      collectedDates.push(new Date(cursor));
+      cursor = addDays(cursor, 1);
+    }
+  } else if (frequency === 'Monthly') {
+    const targetWeekday = selectedWeekdays[0];
+    for (let i = 0; i < Math.max(1, durationUnit === 'weeks' ? Math.ceil(durationValue / 4.345) : durationValue); i += 1) {
+      const monthBase = addMonths(startDate, i);
+      const aligned = alignToWeekday(new Date(monthBase), targetWeekday);
+      if (aligned >= startDate && aligned <= endDate) {
+        collectedDates.push(aligned);
+      }
+    }
+  } else {
+    let cursor = new Date(startDate);
+    while (cursor <= endDate) {
+      const weekday = cursor.getDay();
+      if (selectedWeekdays.includes(weekday)) {
+        if (frequency === 'Biweekly') {
+          const diffDays = Math.floor((cursor - startDate) / (24 * 60 * 60 * 1000));
+          const weekNumber = Math.floor(diffDays / 7);
+          if (weekNumber % 2 === 0) {
+            collectedDates.push(new Date(cursor));
+          }
+        } else {
+          collectedDates.push(new Date(cursor));
+        }
+      }
+      cursor = addDays(cursor, 1);
+    }
+  }
 
-  return Array.from({ length: count }).map((_, index) => {
-    const day = getOccurrenceDate(index);
-    const status =
-      index < 4
-        ? 'Verified'
-        : index === 4
-          ? 'Rejected'
-          : index === 5
-            ? 'Submitted'
-            : index === 6
-              ? 'In Progress'
-              : 'Scheduled';
-
+  return collectedDates.map((day, index) => {
+    const status = 'Scheduled';
     return {
       id: contract.id * 1000 + index + 1,
       contractId: contract.id,
       title: contract.title,
       dateIso: day.toISOString(),
       dateLabel: formatOccurrenceDate(day),
-      time: '08:00 AM - 10:00 AM',
+      time: timeRangeForShift(shift),
       status,
-      note: status === 'Rejected' ? 'Some sections were left unfinished.' : '',
-      clientFeedback: status === 'Rejected' ? 'Please re-clean the kitchen and hallway.' : '',
+      note: '',
+      clientFeedback: '',
       photos: []
     };
   });
+}
+
+const legacyRejectedNote = 'Some sections were left unfinished.';
+const legacyRejectedFeedback = 'Please re-clean the kitchen and hallway.';
+
+function normalizeLegacyOccurrenceStatus(occurrence) {
+  const actionStatus = new Set(['In Progress', 'Submitted', 'Verified', 'Rejected', 'Missed']);
+  if (!actionStatus.has(occurrence?.status)) return occurrence;
+
+  const hasActionTimestamp = Boolean(
+    occurrence?.startedAt ||
+    occurrence?.submittedAt ||
+    occurrence?.verifiedAt ||
+    occurrence?.rejectedAt ||
+    occurrence?.missedAt
+  );
+  if (hasActionTimestamp) return occurrence;
+
+  const hasPhotos = Array.isArray(occurrence?.photos) && occurrence.photos.length > 0;
+  if (hasPhotos) return occurrence;
+
+  const note = String(occurrence?.note || '').trim();
+  const feedback = String(occurrence?.clientFeedback || '').trim();
+  const hasOnlyLegacyText =
+    (!note || note === legacyRejectedNote) &&
+    (!feedback || feedback === legacyRejectedFeedback);
+  if (!hasOnlyLegacyText) return occurrence;
+
+  return {
+    ...occurrence,
+    status: 'Scheduled',
+    note: '',
+    clientFeedback: ''
+  };
 }
 
 function includesQuery(value, query) {
@@ -163,14 +240,14 @@ function createNameFromEmail(email) {
 const clientLockedStatuses = new Set(['Completed', 'Verified', 'Rejected']);
 
 function isClientLockedJob(job) {
-  const hasClient = Boolean(String(job?.clientName || '').trim());
+  const hasClient = Boolean(job?.clientId) || Boolean(String(job?.clientName || '').trim());
   return hasClient && clientLockedStatuses.has(job?.status);
 }
 
 function normalizeNotification(item) {
   const hasAudience = Array.isArray(item.audience) && item.audience.length > 0;
   const defaultAudience =
-    item.kind === 'system' && item.title === 'Welcome to TrackFlow' ? ['all'] : ['internal'];
+    item.kind === 'system' && item.title === 'Welcome to Taskflow' ? ['all'] : ['internal'];
   return {
     ...item,
     kind: item.kind || 'updates',
@@ -188,9 +265,12 @@ function canRoleSeeNotification(item, role) {
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const inviteTokenFromPath = getInviteTokenFromPath(location.pathname);
   const initialRouteScreen = screenFromPath(location.pathname);
-  const [screenState, setScreenState] = useState(() => (initialRouteScreen || (loadStoredState().currentUser ? 'home' : 'welcome')));
-  const currentScreen = screenFromPath(location.pathname) || screenState;
+  const [screenState, setScreenState] = useState(() =>
+    inviteTokenFromPath ? 'invite' : (initialRouteScreen || (loadStoredState().currentUser ? 'home' : 'welcome'))
+  );
+  const currentScreen = inviteTokenFromPath ? 'invite' : (screenFromPath(location.pathname) || screenState);
   const [authMode, setAuthMode] = useState('signup');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedServiceFilter, setSelectedServiceFilter] = useState('');
@@ -235,6 +315,14 @@ function App() {
     const data = loadStoredState();
     return Array.isArray(data.bookmarkedWorkerIds) ? data.bookmarkedWorkerIds : [];
   });
+  const [contractInvites, setContractInvites] = useState(() => {
+    const data = loadStoredState();
+    return Array.isArray(data.contractInvites) ? data.contractInvites : [];
+  });
+  const [pendingInviteToken, setPendingInviteToken] = useState(() => {
+    const data = loadStoredState();
+    return String(data.pendingInviteToken || '');
+  });
   const [selectedReviewJobId, setSelectedReviewJobId] = useState(null);
   const [reviewReadOnly, setReviewReadOnly] = useState(false);
   const [isClientMenuOpen, setIsClientMenuOpen] = useState(false);
@@ -264,9 +352,11 @@ function App() {
       occurrences,
       selectedContractId,
       notifications,
-      bookmarkedWorkerIds
+      bookmarkedWorkerIds,
+      contractInvites,
+      pendingInviteToken
     });
-  }, [authUsers, currentUser, pendingWorkerSetupUserId, workerRequests, jobs, contracts, occurrences, selectedContractId, notifications, bookmarkedWorkerIds]);
+  }, [authUsers, currentUser, pendingWorkerSetupUserId, workerRequests, jobs, contracts, occurrences, selectedContractId, notifications, bookmarkedWorkerIds, contractInvites, pendingInviteToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -285,8 +375,10 @@ function App() {
       if (Array.isArray(remote.occurrences)) setOccurrences(remote.occurrences);
       if (Array.isArray(remote.notifications)) setNotifications(remote.notifications);
       if (Array.isArray(remote.bookmarkedWorkerIds)) setBookmarkedWorkerIds(remote.bookmarkedWorkerIds);
+      if (Array.isArray(remote.contractInvites)) setContractInvites(remote.contractInvites);
       if (remote.selectedContractId !== undefined) setSelectedContractId(remote.selectedContractId || null);
       if (remote.pendingWorkerSetupUserId !== undefined) setPendingWorkerSetupUserId(remote.pendingWorkerSetupUserId || null);
+      if (remote.pendingInviteToken !== undefined) setPendingInviteToken(String(remote.pendingInviteToken || ''));
     };
     hydrate();
     return () => {
@@ -295,10 +387,18 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!screenFromPath(location.pathname)) {
+    setOccurrences((prev) => {
+      const next = prev.map(normalizeLegacyOccurrenceStatus);
+      const changed = next.some((item, index) => item !== prev[index]);
+      return changed ? next : prev;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!screenFromPath(location.pathname) && !inviteTokenFromPath) {
       navigate(pathForScreen(currentScreen), { replace: true });
     }
-  }, [location.pathname, currentScreen, navigate]);
+  }, [location.pathname, currentScreen, navigate, inviteTokenFromPath]);
 
   useEffect(() => {
     setIsClientMenuOpen(false);
@@ -423,10 +523,38 @@ function App() {
     () => authUsers.filter((user) => user.role === 'worker' && user.companyId === currentUser?.id),
     [authUsers, currentUser]
   );
+  const clientUsers = useMemo(
+    () => authUsers.filter((user) => user.role === 'client'),
+    [authUsers]
+  );
+  const findClientByIdentity = (candidate = {}) => {
+    const preferredId = Number(candidate.clientId || 0);
+    if (preferredId > 0) {
+      const exactById = clientUsers.find((user) => Number(user.id) === preferredId);
+      if (exactById) return exactById;
+    }
+
+    const preferredName = String(candidate.clientName || '').trim().toLowerCase();
+    if (preferredName) {
+      return clientUsers.find((user) => String(user.name || '').trim().toLowerCase() === preferredName) || null;
+    }
+    return null;
+  };
+  const isCurrentClientJob = (job) => {
+    if (currentUser?.role !== 'client') return false;
+    if (Number(job?.clientId || 0) === Number(currentUser.id || 0)) return true;
+    return String(job?.clientName || '').trim() === String(currentUser.name || '').trim();
+  };
   const myCompanyJobs = useMemo(
     () =>
       jobs.filter((job) => {
-        if (currentUser?.role === 'worker') return job.assignedWorkerId === currentUser.id;
+        if (currentUser?.role === 'worker') {
+          const sameWorkerId = Number(job.assignedWorkerId || 0) === Number(currentUser.id || 0);
+          const sameWorkerName =
+            String(job.assignedWorkerName || '').trim().toLowerCase() ===
+            String(currentUser.name || '').trim().toLowerCase();
+          return sameWorkerId || sameWorkerName;
+        }
         if (currentUser?.role === 'company') {
           const teamWorkerIds = new Set(myWorkers.map((worker) => worker.id));
           const teamWorkerNames = new Set(myWorkers.map((worker) => worker.name));
@@ -443,13 +571,15 @@ function App() {
   const myClientJobs = useMemo(() => {
     if (currentUser?.role !== 'client') return [];
 
-    const actualJobs = jobs.filter(
-      (job) => job.clientName && job.clientName === currentUser.name
-    );
+    const actualJobs = jobs.filter((job) => isCurrentClientJob(job));
 
     // Show sent requests in the jobs feed so "Send request" has immediate visible feedback.
     const requestRows = workerRequests
-      .filter((request) => request.clientName === currentUser.name)
+      .filter(
+        (request) =>
+          Number(request.clientId || 0) === Number(currentUser.id || 0) ||
+          String(request.clientName || '').trim() === String(currentUser.name || '').trim()
+      )
       .map((request) => ({
         id: request.id + 900000000,
         title: request.requestedService || request.title,
@@ -465,6 +595,7 @@ function App() {
               ? 'Assigned'
               : 'Declined',
         providerImage: 'https://i.pravatar.cc/100?img=32',
+        clientId: request.clientId,
         clientName: request.clientName
       }));
 
@@ -501,7 +632,9 @@ function App() {
   const myContracts = useMemo(
     () =>
       contracts.filter((contract) => {
-        if (currentUser?.role === 'client') return contract.clientName === currentUser.name;
+        if (currentUser?.role === 'client') {
+          return contract.clientId === currentUser.id || contract.clientName === currentUser.name;
+        }
         if (currentUser?.role === 'worker') return contract.workerName === currentUser.name;
         if (currentUser?.role === 'company') {
           const workerNames = myWorkers.map((w) => w.name);
@@ -525,6 +658,22 @@ function App() {
         ? [currentUser.name, ...myWorkers.map((w) => w.name)]
         : workerNameOptions,
     [currentUser, myWorkers, workerNameOptions]
+  );
+  const inviteLinksByContractId = useMemo(() => {
+    const map = {};
+    contractInvites.forEach((invite) => {
+      if (!invite?.token || invite.status !== 'pending') return;
+      map[invite.contractId] = `${window.location.origin}/invite/${encodeURIComponent(invite.token)}`;
+    });
+    return map;
+  }, [contractInvites]);
+  const activeInvite = useMemo(
+    () => contractInvites.find((invite) => invite.token === inviteTokenFromPath) || null,
+    [contractInvites, inviteTokenFromPath]
+  );
+  const invitedContract = useMemo(
+    () => contracts.find((contract) => contract.id === activeInvite?.contractId) || null,
+    [contracts, activeInvite]
   );
 
   const addNotification = (title, body, options = {}) => {
@@ -586,7 +735,8 @@ function App() {
       workerName: user.role === 'company' || user.role === 'worker' ? user.name : 'Fatima Abdullahi',
       location: user.location || 'East Legon, Accra',
       frequency: 'Weekly',
-      weekday: 2,
+      weekdays: [2],
+      shift: 'Morning',
       durationValue: 12,
       durationUnit: 'months',
       startDate: '06 Jan 2026',
@@ -598,7 +748,8 @@ function App() {
       frequency: yearlyContract.frequency,
       durationValue: yearlyContract.durationValue,
       durationUnit: yearlyContract.durationUnit,
-      weekday: yearlyContract.weekday
+      weekdays: yearlyContract.weekdays,
+      shift: yearlyContract.shift
     });
     setContracts((prev) => [yearlyContract, ...prev]);
     setOccurrences((prev) => [...generated, ...prev]);
@@ -626,6 +777,7 @@ function App() {
       requestedService,
       location: details.location || currentUser.location || 'Accra, Ghana',
       proposedTime,
+      clientId: currentUser.id,
       clientName: currentUser.name,
       note: details.note || '',
       status: 'pending'
@@ -659,6 +811,7 @@ function App() {
       rating: '5.0',
       status: 'Assigned',
       providerImage: 'https://i.pravatar.cc/100?img=32',
+      clientId: request.clientId,
       clientName: request.clientName,
       category: request.requestedService || '',
       note: request.note || ''
@@ -775,11 +928,17 @@ function App() {
     setCurrentScreen('jobs');
   };
 
-  const handleSubmitProgress = (jobId) => {
+  const handleSubmitProgress = (jobId, payload = {}) => {
     const jobToSubmit = jobs.find((job) => job.id === jobId && job.status === 'Active');
     if (!jobToSubmit) return;
 
-    const updatedJob = { ...jobToSubmit, status: 'Completed', submittedAt: new Date().toISOString() };
+    const submittedPhotos = Array.isArray(payload.photos) ? payload.photos : jobToSubmit.photos;
+    const updatedJob = {
+      ...jobToSubmit,
+      photos: Array.isArray(submittedPhotos) ? submittedPhotos : [],
+      status: 'Completed',
+      submittedAt: new Date().toISOString()
+    };
     setJobs((prev) => prev.map((job) => (job.id === jobId ? updatedJob : job)));
 
     addNotification('Progress submitted', `${updatedJob.providerName} submitted progress for ${updatedJob.title}.`, {
@@ -872,7 +1031,14 @@ function App() {
     const durationValue = Number(payload.durationValue || 12);
     const durationUnit = payload.durationUnit || 'months';
     const frequency = payload.frequency || 'Weekly';
-    const weekday = Number(payload.weekday ?? new Date().getDay());
+    const weekdays = Array.from(
+      new Set(
+        (Array.isArray(payload.weekdays) ? payload.weekdays : [payload.weekday ?? new Date().getDay()])
+          .map((value) => Number(value))
+          .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6)
+      )
+    );
+    const shift = payload.shift || 'Morning';
     const startDate = payload.startDate ? new Date(payload.startDate) : new Date();
     const contractStart = Number.isNaN(startDate.getTime()) ? new Date() : startDate;
     const contractEnd =
@@ -885,13 +1051,15 @@ function App() {
       id: contractId,
       title: payload.title?.trim() || `${durationValue}-${durationUnit === 'weeks' ? 'Week' : 'Month'} Cleaning Contract`,
       clientName: currentUser.role === 'client' ? currentUser.name : 'Ama Kusi',
+      companyName: currentUser.role === 'company' ? currentUser.name : (payload.companyName?.trim() || ''),
       workerName:
         currentUser.role === 'client'
           ? payload.workerName?.trim() || 'Fatima Abdullahi'
           : payload.workerName?.trim() || currentUser.name,
       location: payload.location?.trim() || currentUser.location || 'Accra',
       frequency,
-      weekday,
+      weekdays,
+      shift,
       durationValue,
       durationUnit,
       startDate: formatContractDate(contractStart),
@@ -901,7 +1069,7 @@ function App() {
 
     setContracts((prev) => [newContract, ...prev]);
     setOccurrences((prev) => [
-      ...buildYearlyOccurrences(newContract, contractStart, { frequency, durationValue, durationUnit, weekday }),
+      ...buildYearlyOccurrences(newContract, contractStart, { frequency, durationValue, durationUnit, weekdays, shift }),
       ...prev
     ]);
     setSelectedContractId(contractId);
@@ -917,6 +1085,7 @@ function App() {
     if (!target) return;
     setContracts((prev) => prev.filter((contract) => contract.id !== contractId));
     setOccurrences((prev) => prev.filter((occurrence) => occurrence.contractId !== contractId));
+    setContractInvites((prev) => prev.filter((invite) => invite.contractId !== contractId));
     if (selectedContractId === contractId) {
       setSelectedContractId(null);
     }
@@ -924,6 +1093,76 @@ function App() {
       audience: ['client', 'company', 'worker'],
       kind: 'timeline'
     });
+  };
+
+  const handleGenerateContractInvite = (contractId) => {
+    if (currentUser?.role !== 'company') return;
+    const target = contracts.find((contract) => contract.id === contractId);
+    if (!target) return '';
+    const token = createInviteToken();
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    setContractInvites((prev) => {
+      const withoutOld = prev.filter((invite) => invite.contractId !== contractId || invite.status !== 'pending');
+      return [
+        {
+          id: Date.now(),
+          contractId,
+          token,
+          createdByUserId: currentUser.id,
+          status: 'pending',
+          expiresAt,
+          createdAt: Date.now()
+        },
+        ...withoutOld
+      ];
+    });
+    const link = `${window.location.origin}/invite/${encodeURIComponent(token)}`;
+    addNotification('Invite link generated', `Invite created for "${target.title}".`, {
+      audience: ['company'],
+      kind: 'timeline'
+    });
+    return link;
+  };
+
+  const acceptInviteToken = (token, userArg = null) => {
+    const inviteToken = String(token || '').trim();
+    if (!inviteToken) return false;
+    const actingUser = userArg || currentUser;
+    if (!actingUser || actingUser.role !== 'client') return false;
+    const invite = contractInvites.find((item) => item.token === inviteToken);
+    if (!invite || invite.status !== 'pending') return false;
+    if (Number(invite.expiresAt || 0) > 0 && Date.now() > Number(invite.expiresAt)) {
+      setContractInvites((prev) =>
+        prev.map((item) => (item.token === inviteToken ? { ...item, status: 'expired' } : item))
+      );
+      return false;
+    }
+
+    const contract = contracts.find((item) => item.id === invite.contractId);
+    if (!contract) return false;
+
+    setContracts((prev) =>
+      prev.map((item) =>
+        item.id === invite.contractId
+          ? { ...item, clientName: actingUser.name, clientId: actingUser.id }
+          : item
+      )
+    );
+    setContractInvites((prev) =>
+      prev.map((item) =>
+        item.token === inviteToken
+          ? { ...item, status: 'accepted', acceptedByUserId: actingUser.id, acceptedAt: Date.now() }
+          : item
+      )
+    );
+    setPendingInviteToken('');
+    setSelectedContractId(invite.contractId);
+    setCurrentScreen('contracts');
+    addNotification('Invite accepted', `${actingUser.name} joined "${contract.title}".`, {
+      audience: ['client', 'company'],
+      kind: 'timeline'
+    });
+    return true;
   };
 
   const handleUpdateActiveJob = (jobId, updates) => {
@@ -943,6 +1182,7 @@ function App() {
       const {
         title,
         category,
+        clientId,
         clientName,
         location,
         date,
@@ -951,7 +1191,18 @@ function App() {
       } = updates;
       if (title !== undefined) allowedUpdates.title = title;
       if (category !== undefined) allowedUpdates.category = category;
-      if (clientName !== undefined) allowedUpdates.clientName = clientName;
+      if (clientId !== undefined || clientName !== undefined) {
+        const resolvedClient = findClientByIdentity({
+          clientId: clientId !== undefined ? clientId : target.clientId,
+          clientName: clientName !== undefined ? clientName : target.clientName
+        });
+        if (clientName !== undefined) {
+          allowedUpdates.clientName = clientName;
+        } else if (resolvedClient?.name) {
+          allowedUpdates.clientName = resolvedClient.name;
+        }
+        allowedUpdates.clientId = resolvedClient ? resolvedClient.id : undefined;
+      }
       if (location !== undefined) allowedUpdates.location = location;
       if (date !== undefined) allowedUpdates.date = date;
       if (time !== undefined) allowedUpdates.time = time;
@@ -1016,7 +1267,7 @@ function App() {
     }
   };
 
-  const handleAuthenticate = ({ mode, role, email, password }) => {
+  const handleAuthenticate = ({ mode, role, email, password, fullName = '' }) => {
     let authenticatedUser = null;
 
     if (mode === 'signup') {
@@ -1029,7 +1280,7 @@ function App() {
         email,
         password,
         role,
-        name: createNameFromEmail(email),
+        name: fullName.trim() || createNameFromEmail(email),
         phone: '',
         location: '',
         about: '',
@@ -1051,6 +1302,34 @@ function App() {
       authenticatedUser = found;
       setCurrentUser(authenticatedUser);
       ensureWorkerAssignments(authenticatedUser);
+    }
+
+    const needsCompanySetup =
+      authenticatedUser?.role === 'company' &&
+      (!Array.isArray(authenticatedUser.workerCategories) || authenticatedUser.workerCategories.length === 0);
+
+    if (needsCompanySetup) {
+      setPendingWorkerSetupUserId(authenticatedUser.id);
+      setCurrentScreen('worker-setup');
+      setPendingBookingWorker(null);
+      setPendingActionType(null);
+      return { ok: true };
+    }
+
+    const resumeInviteToken = pendingInviteToken || inviteTokenFromPath;
+    if (resumeInviteToken && authenticatedUser?.role === 'client') {
+      const accepted = acceptInviteToken(resumeInviteToken, authenticatedUser);
+      if (accepted) {
+        setPendingBookingWorker(null);
+        setPendingActionType(null);
+        return { ok: true };
+      }
+    }
+
+    if (authenticatedUser?.role === 'client' && !pendingActionType) {
+      setCurrentScreen('client-invite');
+      setPendingBookingWorker(null);
+      return { ok: true };
     }
 
     const workerToBook = pendingBookingWorker || selectedWorker;
@@ -1114,7 +1393,6 @@ function App() {
   const openAllWorkers = () => {
     setClientWorkersFromServices(false);
     setSelectedServiceFilter('');
-    setSearchQuery('');
     setCurrentScreen('workers');
   };
 
@@ -1241,6 +1519,7 @@ function App() {
     setPendingBookingWorker(null);
     setPendingActionType(null);
     setPendingWorkerSetupUserId(null);
+    setPendingInviteToken('');
     setAuthMode('signin');
     setCurrentScreen('welcome');
   };
@@ -1254,6 +1533,8 @@ function App() {
     setFocusedOccurrenceId(null);
     setPendingCompanyAssignmentJobId(null);
     setNotifications(seedNotifications);
+    setContractInvites([]);
+    setPendingInviteToken('');
     setSelectedServiceFilter('');
     setSearchQuery('');
     setCurrentScreen('home');
@@ -1378,7 +1659,7 @@ function App() {
     setCurrentUser((prev) => (prev && prev.id === targetId ? { ...prev, workerCategories: categories } : prev));
     setPendingWorkerSetupUserId(null);
     ensureWorkerAssignments({ ...(currentUser || {}), id: targetId, role: 'company', workerCategories: categories });
-    setCurrentScreen('jobs');
+    setCurrentScreen('home');
   };
 
   const handleWorkerLogNewUpdate = (payload) => {
@@ -1402,6 +1683,26 @@ function App() {
     } else {
       const isAssignment = !!payload.assignedWorkerId;
       const assignedWorker = isAssignment ? myWorkers.find(w => w.id === Number(payload.assignedWorkerId)) : null;
+      const linkedClient = findClientByIdentity(payload);
+      if (!linkedClient) {
+        addNotification(
+          'Client link required',
+          'Select a registered client before creating/assigning a job. If the client is new, generate an invite from Yearly Contracts first.',
+          {
+            audience: ['company'],
+            kind: 'system'
+          }
+        );
+        return;
+      }
+      const resolvedClientName = linkedClient?.name || String(payload.clientName || '').trim();
+      if (!resolvedClientName) {
+        addNotification('Client required', 'Choose or enter a client before creating the job.', {
+          audience: ['company'],
+          kind: 'system'
+        });
+        return;
+      }
       const newJob = {
         id: workId,
         title: payload.title,
@@ -1416,7 +1717,8 @@ function App() {
         serviceIcon: undefined,
         providerImage: 'https://i.pravatar.cc/100?img=32',
         category: payload.category,
-        clientName: payload.clientName,
+        clientId: linkedClient?.id,
+        clientName: resolvedClientName,
         note: payload.note,
         photos: payload.photos || []
       };
@@ -1465,7 +1767,7 @@ function App() {
   const clientJobVerificationQueue = useMemo(
     () =>
       jobs
-        .filter((job) => job.clientName === currentUser?.name && job.status === 'Completed')
+        .filter((job) => isCurrentClientJob(job) && job.status === 'Completed')
         .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))
         .slice(0, 4)
         .map((job) => ({
@@ -1496,7 +1798,7 @@ function App() {
   );
   const clientVerificationStats = useMemo(() => {
     const scoped = occurrences.filter((o) => myContractIdSet.has(o.contractId));
-    const jobSubmitted = jobs.filter((job) => job.clientName === currentUser?.name && job.status === 'Completed').length;
+    const jobSubmitted = jobs.filter((job) => isCurrentClientJob(job) && job.status === 'Completed').length;
     const submitted = scoped.filter((o) => o.status === 'Submitted').length + jobSubmitted;
     const rejected = scoped.filter((o) => o.status === 'Rejected').length;
     const verified = scoped.filter((o) => o.status === 'Verified').length;
@@ -1565,6 +1867,26 @@ function App() {
           />
         )}
 
+        {currentScreen === 'invite' && (
+          <ContractInviteScreen
+            inviteToken={inviteTokenFromPath}
+            invite={activeInvite}
+            contract={invitedContract}
+            currentUser={currentUser}
+            onSignUp={() => {
+              setPendingInviteToken(inviteTokenFromPath);
+              setAuthMode('signup');
+              setCurrentScreen('auth');
+            }}
+            onSignIn={() => {
+              setPendingInviteToken(inviteTokenFromPath);
+              setAuthMode('signin');
+              setCurrentScreen('auth');
+            }}
+            onAcceptInvite={acceptInviteToken}
+          />
+        )}
+
         {currentUser && currentScreen === 'worker-setup' && (
           <WorkerSetupPage
             services={services}
@@ -1573,7 +1895,17 @@ function App() {
           />
         )}
 
-        {!currentUser && !['welcome', 'auth'].includes(currentScreen) && (
+        {currentUser?.role === 'client' && currentScreen === 'client-invite' && (
+          <ClientInviteEntryPage
+            onApplyInvite={(token) => acceptInviteToken(token, currentUser)}
+            onSkip={() => {
+              setPendingInviteToken('');
+              setCurrentScreen('home');
+            }}
+          />
+        )}
+
+        {!currentUser && !['welcome', 'auth', 'invite'].includes(currentScreen) && (
           <WelcomeScreen
             onSignUp={() => {
               setAuthMode('signup');
@@ -1700,9 +2032,10 @@ function App() {
                 : (currentUser.workerCategories || [])
             }
             workers={myWorkers}
+            clients={clientUsers}
             isCompany={currentUser.role === 'company'}
             isClientRequest={currentUser.role === 'client'}
-            initialClientName={currentUser.name}
+            initialClientName={currentUser.role === 'client' ? currentUser.name : ''}
             onBack={() => setCurrentScreen(currentUser.role === 'client' ? 'profile' : 'jobs')}
             onSubmit={handleWorkerLogNewUpdate}
           />
@@ -1752,6 +2085,8 @@ function App() {
               onSelectContract={setSelectedContractId}
               onCreateYearlyContract={handleCreateYearlyContract}
               onDeleteContract={handleDeleteContract}
+              onGenerateInvite={handleGenerateContractInvite}
+              inviteLinksByContractId={inviteLinksByContractId}
               onStartOccurrence={handleStartOccurrence}
               onSubmitOccurrence={handleSubmitOccurrence}
               onApproveOccurrence={handleApproveOccurrence}
@@ -1852,7 +2187,7 @@ function App() {
           </div>
         )}
 
-        {currentUser && !['profile', 'auth', 'review-work', 'account', 'notifications', 'welcome', 'worker-setup', 'worker-log'].includes(currentScreen) && (
+        {currentUser && !['profile', 'auth', 'review-work', 'account', 'notifications', 'welcome', 'worker-setup', 'worker-log', 'invite', 'client-invite'].includes(currentScreen) && (
           <BottomNav
             currentScreen={currentScreen}
             setCurrentScreen={setCurrentScreen}

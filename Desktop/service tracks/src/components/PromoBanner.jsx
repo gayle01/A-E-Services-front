@@ -11,7 +11,7 @@
           onClick={onOpenJobs}
           className="bg-white text-slate-900 text-sm font-semibold py-2 px-6 rounded-full hover:bg-slate-100 transition"
         >
-          Open jobs
+          View contract
         </button>
       </div>
       <div className="absolute right-[-20px] bottom-0 w-40 h-40 opacity-85">

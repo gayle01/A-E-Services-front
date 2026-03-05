@@ -10,7 +10,7 @@ function WorkerSetupPage({ services, currentUser, onSave }) {
 
       <div className="relative z-10 w-full max-w-2xl">
         <div className="flex flex-col items-center mb-8 text-center">
-          <img src={LOGO_URL} alt="TrackFlow" className="w-16 h-16 object-contain drop-shadow-lg mb-4" />
+          <img src={LOGO_URL} alt="Taskflow" className="w-16 h-16 object-contain drop-shadow-lg mb-4" />
           <h2 className="text-3xl font-bold text-white tracking-tight drop-shadow-lg">Setup Your Profile</h2>
           <p className="text-gray-300 mt-2">Select your skills to get matched with the right jobs.</p>
         </div>

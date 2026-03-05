@@ -1,7 +1,7 @@
 ﻿export const STORAGE_KEY = 'local-marketplace-state-v3';
 
 export const seedNotifications = [
-  { id: 1, title: 'Welcome to TrackFlow', body: 'Get started by setting up your profile.', time: 'Now', unread: true }
+  { id: 1, title: 'Welcome to Taskflow', body: 'Get started by setting up your profile.', time: 'Now', unread: true }
 ];
 
 const LEGACY_TEXT_REPLACEMENTS = [
@@ -162,6 +162,8 @@ export function createStateSnapshot(state) {
     selectedContractId: state.selectedContractId,
     notifications: state.notifications,
     bookmarkedWorkerIds: state.bookmarkedWorkerIds,
+    contractInvites: state.contractInvites,
+    pendingInviteToken: state.pendingInviteToken,
     updatedAt: Date.now()
   };
 }
@@ -178,6 +180,8 @@ export function getEmptyState() {
     selectedContractId: null,
     notifications: seedNotifications,
     bookmarkedWorkerIds: [],
+    contractInvites: [],
+    pendingInviteToken: '',
     updatedAt: 0
   };
 }
@@ -196,6 +200,8 @@ export function normalizeStoredState(rawState = {}) {
     occurrences: Array.isArray(data.occurrences) ? data.occurrences : empty.occurrences,
     notifications: Array.isArray(data.notifications) ? data.notifications : empty.notifications,
     bookmarkedWorkerIds: Array.isArray(data.bookmarkedWorkerIds) ? data.bookmarkedWorkerIds : empty.bookmarkedWorkerIds,
+    contractInvites: Array.isArray(data.contractInvites) ? data.contractInvites : empty.contractInvites,
+    pendingInviteToken: String(data.pendingInviteToken || ''),
     selectedContractId: data.selectedContractId || null,
     updatedAt: Number(data.updatedAt || 0)
   };

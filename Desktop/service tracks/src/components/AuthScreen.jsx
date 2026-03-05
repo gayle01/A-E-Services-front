@@ -8,6 +8,7 @@ function isEmailValid(email) {
 function AuthScreen({ onAuthenticate, onResetPassword, initialMode = 'signup', onBack }) {
   const [mode, setMode] = useState(initialMode);
   const [role, setRole] = useState('client');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,6 +23,7 @@ function AuthScreen({ onAuthenticate, onResetPassword, initialMode = 'signup', o
   const [success, setSuccess] = useState('');
 
   const resetFormState = () => {
+    setFullName('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -42,8 +44,15 @@ function AuthScreen({ onAuthenticate, onResetPassword, initialMode = 'signup', o
   }, [initialMode]);
 
   const submitLabel = mode === 'signup' ? 'Sign Up' : 'Sign In';
+  const signupNameLabel = role === 'company' ? 'Company Name' : 'Full Name';
+  const signupNamePlaceholder = role === 'company' ? 'Your company name' : 'Your full name';
 
   const handleSubmit = () => {
+    if (mode === 'signup' && !fullName.trim()) {
+      setError(role === 'company' ? 'Enter your company name.' : 'Enter your name.');
+      return;
+    }
+
     if (!isEmailValid(email)) {
       setError('Enter a valid email address.');
       return;
@@ -61,7 +70,7 @@ function AuthScreen({ onAuthenticate, onResetPassword, initialMode = 'signup', o
 
     setError('');
     setSuccess('');
-    const result = onAuthenticate?.({ mode, role, email, password });
+    const result = onAuthenticate?.({ mode, role, email, password, fullName: fullName.trim() });
     if (result && result.ok === false) {
       setError(result.error || 'Authentication failed.');
     }
@@ -107,7 +116,7 @@ function AuthScreen({ onAuthenticate, onResetPassword, initialMode = 'signup', o
           <ArrowLeft size={14} />
           Back
         </button>
-        <h1 className="text-3xl font-bold text-gray-900 font-['Playfair_Display']">Tasklow</h1>
+        <h1 className="text-3xl font-bold text-gray-900 font-['Playfair_Display']">Taskflow</h1>
       </div>
 
       <div className="w-full bg-slate-50 rounded-full p-1 grid grid-cols-3 gap-1 mb-5">
@@ -135,6 +144,19 @@ function AuthScreen({ onAuthenticate, onResetPassword, initialMode = 'signup', o
       </div>
 
       <div className="space-y-4">
+        {mode === 'signup' && (
+          <div>
+            <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">{signupNameLabel}</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder={signupNamePlaceholder}
+              className="w-full bg-white border border-gray-200 rounded-lg py-3 px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
+        )}
+
         <div>
           <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Email</label>
           <div className="relative">

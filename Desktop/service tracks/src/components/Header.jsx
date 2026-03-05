@@ -64,8 +64,8 @@ function Header({
       </div>
 
       <h1 className="text-[28px] leading-tight font-extrabold text-gray-900 mb-4">
-        Track progress,
-        <span className="text-blue-500"> verify completed work</span>
+        Welcome back,
+        <span className="text-blue-500"> {displayName}</span>
       </h1>
 
       <div className="relative mb-8">

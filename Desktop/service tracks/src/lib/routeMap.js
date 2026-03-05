@@ -1,6 +1,7 @@
 ﻿export const SCREEN_PATHS = {
   welcome: '/welcome',
   auth: '/auth',
+  'client-invite': '/client-invite',
   home: '/home',
   requests: '/requests',
   jobs: '/jobs',
@@ -10,6 +11,7 @@
   profile: '/profile',
   account: '/account',
   notifications: '/notifications',
+  invite: '/invite',
   'worker-setup': '/worker-setup',
   'worker-log': '/worker-log',
   'review-work': '/review-work'

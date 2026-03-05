@@ -9,8 +9,8 @@ function WelcomeScreen({ onSignUp, onSignIn }) {
       <div className="absolute inset-0 bg-black/75"></div>
 
       <nav className="absolute top-0 left-0 w-full flex items-center justify-between p-6 md:py-8 md:px-12 z-20">
-        <img src={LOGO_URL} alt="TrackFlow" className="w-20 h-20 object-contain drop-shadow-lg" />
-        <h2 className="text-white text-2xl md:text-3xl font-black tracking-[0.1em] uppercase font-serif">TrackFlow</h2>
+        <img src={LOGO_URL} alt="Taskflow" className="w-20 h-20 object-contain drop-shadow-lg" />
+        <h2 className="text-white text-2xl md:text-3xl font-black tracking-[0.1em] uppercase font-serif">Taskflow</h2>
       </nav>
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center text-center mt-12">
