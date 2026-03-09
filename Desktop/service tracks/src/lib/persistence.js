@@ -1,4 +1,4 @@
-﻿import {
+import {
   STORAGE_KEY,
   getEmptyState,
   migrateLegacyData,
@@ -10,6 +10,28 @@ const API_BASE = String(import.meta.env.VITE_STATE_API_BASE || '').trim();
 function stateEndpoint() {
   if (!API_BASE) return null;
   return `${API_BASE.replace(/\/$/, '')}/state/${encodeURIComponent(STORAGE_KEY)}`;
+}
+
+function stripSensitiveAuthFields(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return {};
+
+  const sanitized = {
+    ...snapshot,
+    authUsers: Array.isArray(snapshot.authUsers)
+      ? snapshot.authUsers.map((user) => {
+          if (!user || typeof user !== 'object') return user;
+          const { password, ...rest } = user;
+          return rest;
+        })
+      : []
+  };
+
+  if (snapshot.currentUser && typeof snapshot.currentUser === 'object') {
+    const { password, ...rest } = snapshot.currentUser;
+    sanitized.currentUser = rest;
+  }
+
+  return sanitized;
 }
 
 export function loadStateFromLocal() {
@@ -24,7 +46,8 @@ export function loadStateFromLocal() {
 
 export function saveStateToLocal(snapshot) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    const sanitizedSnapshot = stripSensitiveAuthFields(snapshot);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedSnapshot));
   } catch {
     // Ignore local write errors, app remains usable in-memory.
   }
@@ -49,6 +72,7 @@ export async function loadState() {
 
 export async function saveState(snapshot) {
   const endpoint = stateEndpoint();
+  const sanitizedSnapshot = stripSensitiveAuthFields(snapshot);
   let remoteSaved = false;
 
   if (endpoint) {
@@ -56,7 +80,7 @@ export async function saveState(snapshot) {
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: snapshot })
+        body: JSON.stringify({ state: sanitizedSnapshot })
       });
       remoteSaved = response.ok;
     } catch {
@@ -65,11 +89,10 @@ export async function saveState(snapshot) {
   }
 
   if (!remoteSaved || !endpoint) {
-    saveStateToLocal(snapshot);
+    saveStateToLocal(sanitizedSnapshot);
     return;
   }
 
   // Keep local cache warm even when backend succeeds.
-  saveStateToLocal(snapshot);
+  saveStateToLocal(sanitizedSnapshot);
 }
-
