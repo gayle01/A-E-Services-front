@@ -1,0 +1,1105 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Learning Management System API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: courses
+  - name: lessons
+  - name: enrollments
+  - name: assignments
+  - name: submissions
+  - name: quizzes
+  - name: quiz-attempts
+  - name: dashboard
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /courses:
+    get:
+      operationId: listCourses
+      tags: [courses]
+      summary: List all courses
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+    post:
+      operationId: createCourse
+      tags: [courses]
+      summary: Create a new course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCourseInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+
+  /courses/{courseId}:
+    get:
+      operationId: getCourse
+      tags: [courses]
+      summary: Get a course with lessons
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseDetail"
+    patch:
+      operationId: updateCourse
+      tags: [courses]
+      summary: Update course
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCourseInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+    delete:
+      operationId: deleteCourse
+      tags: [courses]
+      summary: Delete a course
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /courses/{courseId}/lessons:
+    get:
+      operationId: listLessonsForCourse
+      tags: [lessons]
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lesson"
+    post:
+      operationId: createLesson
+      tags: [lessons]
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLessonInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+
+  /lessons/{lessonId}:
+    get:
+      operationId: getLesson
+      tags: [lessons]
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+    patch:
+      operationId: updateLesson
+      tags: [lessons]
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLessonInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+    delete:
+      operationId: deleteLesson
+      tags: [lessons]
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /lessons/{lessonId}/complete:
+    post:
+      operationId: completeLesson
+      tags: [lessons]
+      summary: Mark a lesson as completed for the current student
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonCompletion"
+
+  /enrollments:
+    get:
+      operationId: listEnrollments
+      tags: [enrollments]
+      summary: List all enrollments for the current student with progress
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EnrollmentWithProgress"
+    post:
+      operationId: enrollInCourse
+      tags: [enrollments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollInput"
+      responses:
+        "201":
+          description: Enrolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+
+  /assignments:
+    get:
+      operationId: listAssignments
+      tags: [assignments]
+      summary: List all assignments
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
+    post:
+      operationId: createAssignment
+      tags: [assignments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssignmentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+
+  /assignments/{assignmentId}:
+    get:
+      operationId: getAssignment
+      tags: [assignments]
+      parameters:
+        - name: assignmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+    patch:
+      operationId: updateAssignment
+      tags: [assignments]
+      parameters:
+        - name: assignmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssignmentInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+    delete:
+      operationId: deleteAssignment
+      tags: [assignments]
+      parameters:
+        - name: assignmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /assignments/my:
+    get:
+      operationId: listMyAssignments
+      tags: [assignments]
+      summary: List assignments for the current student with submission status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssignmentWithStatus"
+
+  /assignments/{assignmentId}/submissions:
+    post:
+      operationId: submitAssignment
+      tags: [submissions]
+      parameters:
+        - name: assignmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubmissionInput"
+      responses:
+        "201":
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
+    get:
+      operationId: listSubmissionsForAssignment
+      tags: [submissions]
+      parameters:
+        - name: assignmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubmissionWithStudent"
+
+  /quizzes:
+    get:
+      operationId: listQuizzes
+      tags: [quizzes]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Quiz"
+    post:
+      operationId: createQuiz
+      tags: [quizzes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateQuizInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quiz"
+
+  /quizzes/{quizId}:
+    get:
+      operationId: getQuiz
+      tags: [quizzes]
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizDetail"
+    patch:
+      operationId: updateQuiz
+      tags: [quizzes]
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQuizInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quiz"
+    delete:
+      operationId: deleteQuiz
+      tags: [quizzes]
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /quizzes/{quizId}/attempts:
+    post:
+      operationId: submitQuizAttempt
+      tags: [quiz-attempts]
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitQuizAttemptInput"
+      responses:
+        "201":
+          description: Scored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizAttemptResult"
+
+  /quiz-attempts/my:
+    get:
+      operationId: listMyQuizAttempts
+      tags: [quiz-attempts]
+      summary: List the current student's quiz attempts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizAttempt"
+
+  /dashboard/student:
+    get:
+      operationId: getStudentDashboard
+      tags: [dashboard]
+      summary: Aggregated stats for the student dashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentDashboard"
+
+  /dashboard/admin:
+    get:
+      operationId: getAdminDashboard
+      tags: [dashboard]
+      summary: Aggregated stats for the admin dashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Recent platform activity feed
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    Course:
+      type: object
+      required: [id, title, description, category, level, coverColor, createdAt, lessonCount]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        coverColor:
+          type: string
+        instructor:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lessonCount:
+          type: integer
+        enrolledCount:
+          type: integer
+
+    CourseDetail:
+      allOf:
+        - $ref: "#/components/schemas/Course"
+        - type: object
+          required: [lessons]
+          properties:
+            lessons:
+              type: array
+              items:
+                $ref: "#/components/schemas/Lesson"
+
+    CreateCourseInput:
+      type: object
+      required: [title, description, category, level]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        coverColor:
+          type: string
+        instructor:
+          type: string
+
+    UpdateCourseInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        coverColor:
+          type: string
+        instructor:
+          type: string
+
+    Lesson:
+      type: object
+      required: [id, courseId, title, content, orderIndex, createdAt]
+      properties:
+        id:
+          type: string
+        courseId:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        durationMinutes:
+          type: integer
+        orderIndex:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateLessonInput:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        durationMinutes:
+          type: integer
+        orderIndex:
+          type: integer
+
+    UpdateLessonInput:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        durationMinutes:
+          type: integer
+        orderIndex:
+          type: integer
+
+    LessonCompletion:
+      type: object
+      required: [lessonId, completedAt]
+      properties:
+        lessonId:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+
+    EnrollInput:
+      type: object
+      required: [courseId]
+      properties:
+        courseId:
+          type: string
+
+    Enrollment:
+      type: object
+      required: [id, courseId, studentName, enrolledAt]
+      properties:
+        id:
+          type: string
+        courseId:
+          type: string
+        studentName:
+          type: string
+        enrolledAt:
+          type: string
+          format: date-time
+
+    EnrollmentWithProgress:
+      type: object
+      required: [id, course, completedLessons, totalLessons, progressPercent, enrolledAt]
+      properties:
+        id:
+          type: string
+        course:
+          $ref: "#/components/schemas/Course"
+        completedLessons:
+          type: integer
+        totalLessons:
+          type: integer
+        progressPercent:
+          type: integer
+        enrolledAt:
+          type: string
+          format: date-time
+
+    Assignment:
+      type: object
+      required: [id, courseId, courseTitle, title, instructions, points, createdAt]
+      properties:
+        id:
+          type: string
+        courseId:
+          type: string
+        courseTitle:
+          type: string
+        title:
+          type: string
+        instructions:
+          type: string
+        points:
+          type: integer
+        dueAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    AssignmentWithStatus:
+      allOf:
+        - $ref: "#/components/schemas/Assignment"
+        - type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [pending, submitted, graded]
+            grade:
+              type: integer
+            submittedAt:
+              type: string
+              format: date-time
+
+    CreateAssignmentInput:
+      type: object
+      required: [courseId, title, instructions, points]
+      properties:
+        courseId:
+          type: string
+        title:
+          type: string
+        instructions:
+          type: string
+        points:
+          type: integer
+        dueAt:
+          type: string
+          format: date-time
+
+    UpdateAssignmentInput:
+      type: object
+      properties:
+        title:
+          type: string
+        instructions:
+          type: string
+        points:
+          type: integer
+        dueAt:
+          type: string
+          format: date-time
+
+    Submission:
+      type: object
+      required: [id, assignmentId, studentName, content, submittedAt]
+      properties:
+        id:
+          type: string
+        assignmentId:
+          type: string
+        studentName:
+          type: string
+        content:
+          type: string
+        attachment:
+          $ref: "#/components/schemas/AttachmentMetadata"
+        grade:
+          type: integer
+        submittedAt:
+          type: string
+          format: date-time
+
+    SubmissionWithStudent:
+      allOf:
+        - $ref: "#/components/schemas/Submission"
+        - type: object
+          properties:
+            assignmentTitle:
+              type: string
+
+    CreateSubmissionInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+        attachment:
+          $ref: "#/components/schemas/SubmissionAttachmentInput"
+
+    SubmissionAttachmentInput:
+      type: object
+      required: [fileName, mimeType, size, base64Data]
+      properties:
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+        base64Data:
+          type: string
+
+    AttachmentMetadata:
+      type: object
+      required: [fileName, mimeType, size, storagePath, publicUrl]
+      properties:
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+        storagePath:
+          type: string
+        publicUrl:
+          type: string
+
+    Quiz:
+      type: object
+      required: [id, courseId, courseTitle, title, description, questionCount, totalPoints, createdAt]
+      properties:
+        id:
+          type: string
+        courseId:
+          type: string
+        courseTitle:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        questionCount:
+          type: integer
+        totalPoints:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    QuizDetail:
+      allOf:
+        - $ref: "#/components/schemas/Quiz"
+        - type: object
+          required: [questions]
+          properties:
+            questions:
+              type: array
+              items:
+                $ref: "#/components/schemas/QuizQuestion"
+
+    QuizQuestion:
+      type: object
+      required: [id, prompt, options, points, orderIndex]
+      properties:
+        id:
+          type: string
+        prompt:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        points:
+          type: integer
+        orderIndex:
+          type: integer
+
+    CreateQuizInput:
+      type: object
+      required: [courseId, title, description, questions]
+      properties:
+        courseId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateQuizQuestionInput"
+
+    UpdateQuizInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateQuizQuestionInput"
+
+    CreateQuizQuestionInput:
+      type: object
+      required: [prompt, options, correctIndex, points]
+      properties:
+        prompt:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        correctIndex:
+          type: integer
+        points:
+          type: integer
+
+    SubmitQuizAttemptInput:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: array
+          items:
+            type: object
+            required: [questionId, selectedIndex]
+            properties:
+              questionId:
+                type: string
+              selectedIndex:
+                type: integer
+
+    QuizAttemptResult:
+      type: object
+      required: [id, quizId, score, totalPoints, percent, submittedAt, breakdown]
+      properties:
+        id:
+          type: string
+        quizId:
+          type: string
+        score:
+          type: integer
+        totalPoints:
+          type: integer
+        percent:
+          type: integer
+        submittedAt:
+          type: string
+          format: date-time
+        breakdown:
+          type: array
+          items:
+            type: object
+            required: [questionId, prompt, selectedIndex, correctIndex, isCorrect]
+            properties:
+              questionId:
+                type: string
+              prompt:
+                type: string
+              selectedIndex:
+                type: integer
+              correctIndex:
+                type: integer
+              isCorrect:
+                type: boolean
+
+    QuizAttempt:
+      type: object
+      required: [id, quizId, quizTitle, courseTitle, score, totalPoints, percent, submittedAt]
+      properties:
+        id:
+          type: string
+        quizId:
+          type: string
+        quizTitle:
+          type: string
+        courseTitle:
+          type: string
+        score:
+          type: integer
+        totalPoints:
+          type: integer
+        percent:
+          type: integer
+        submittedAt:
+          type: string
+          format: date-time
+
+    StudentDashboard:
+      type: object
+      required: [enrolledCourses, completedLessons, pendingAssignments, averageQuizScore, currentEnrollments, upcomingAssignments]
+      properties:
+        enrolledCourses:
+          type: integer
+        completedLessons:
+          type: integer
+        pendingAssignments:
+          type: integer
+        averageQuizScore:
+          type: integer
+        currentEnrollments:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnrollmentWithProgress"
+        upcomingAssignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssignmentWithStatus"
+
+    AdminDashboard:
+      type: object
+      required: [totalCourses, totalLessons, totalAssignments, totalQuizzes, totalEnrollments, totalSubmissions, coursesByCategory, recentSubmissions]
+      properties:
+        totalCourses:
+          type: integer
+        totalLessons:
+          type: integer
+        totalAssignments:
+          type: integer
+        totalQuizzes:
+          type: integer
+        totalEnrollments:
+          type: integer
+        totalSubmissions:
+          type: integer
+        coursesByCategory:
+          type: array
+          items:
+            type: object
+            required: [category, count]
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+        recentSubmissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubmissionWithStudent"
+
+    ActivityItem:
+      type: object
+      required: [id, type, description, occurredAt]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [enrollment, submission, quiz_attempt, lesson_completion]
+        description:
+          type: string
+        actorName:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
