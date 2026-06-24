@@ -1,7 +1,6 @@
 [build]
-  base = "Desktop/buildplan/buildplan-frontend/artifacts/build-planner"
   command = "npm run build"
-  publish = "Desktop/buildplan/buildplan-frontend/artifacts/build-planner/dist/public"
+  publish = "dist/public"
 
 [[redirects]]
   from = "/*"
