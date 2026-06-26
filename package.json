@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
-    "serve": "vite preview --host 0.0.0.0",
+    "dev": "node vite.runner.mjs dev",
+    "build": "node vite.runner.mjs build",
+    "serve": "node vite.runner.mjs preview",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
