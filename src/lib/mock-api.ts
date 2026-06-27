@@ -38,7 +38,7 @@ export const LAND_ASSISTANCE_OPTIONS = [
   "Assistance to regularize documents",
   "Assistance to re-demarcate land",
 ] as const;
-export const ENVIRONMENTAL_ZONES = ["Cultural sensitivity", "Environmental sensitive"] as const;
+export const ENVIRONMENTAL_ZONES = ["Environmentally sensitive", "Culturally sensitive"] as const;
 export const ZONING_OPTIONS = ["Residential", "Commercial", "Industrial", "Agricultural", "Institutional", "Mixed Use", "Special"] as const;
 export const SITE_ZONE_TYPES = ["Residential", "Religious", "Civic", "Mixed"] as const;
 export const ENVIRONMENTAL_SENSITIVITIES = ["Low", "Medium", "High"] as const;
@@ -131,6 +131,11 @@ export type ProjectComplexity = (typeof PROJECT_COMPLEXITIES)[number];
 export type ColourScheme = (typeof COLOUR_SCHEMES)[number];
 export type DesignStyle = (typeof DESIGN_STYLES)[number];
 export type BuildingStyle = (typeof BUILDING_STYLES)[number];
+export type RoofType = (typeof ROOF_TYPES)[number];
+export type SoilCondition = (typeof SOIL_CONDITIONS)[number];
+export type SiteAccessibility = (typeof SITE_ACCESSIBILITY)[number];
+export type FinishLevel = (typeof FINISH_LEVELS)[number];
+export type BuildingShape = (typeof BUILDING_SHAPES)[number];
 export type Orientation = (typeof ORIENTATION_OPTIONS)[number];
 export type OwnLandOption = (typeof OWN_LAND_OPTIONS)[number];
 export type LandTenure = (typeof LAND_TENURES)[number];
@@ -144,6 +149,10 @@ export type NaturalFeature = (typeof NATURAL_FEATURES)[number];
 export type ViewType = (typeof VIEWS)[number];
 export type AccessRoad = (typeof ACCESS_ROADS)[number];
 export type NeighbourhoodCharacter = (typeof NEIGHBOURHOOD_CHARACTER)[number];
+export type RoofComplexity = (typeof ROOF_COMPLEXITIES)[number];
+export type ArchitecturalScope = (typeof ARCHITECTURAL_SCOPES)[number];
+export type FoundationType = (typeof FOUNDATION_TYPES)[number];
+export type StructuralSystem = (typeof STRUCTURAL_SYSTEMS)[number];
 export type RelationshipOption = (typeof RELATIONSHIP_OPTIONS)[number];
 export type SocialStatus = (typeof SOCIAL_STATUSES)[number];
 export type MaritalStatus = (typeof MARITAL_STATUSES)[number];
@@ -170,12 +179,13 @@ export type ProjectInput = {
   constructionPhasing: ConstructionPhase;
   expectedCompletionTime: ExpectedCompletionTime;
   projectComplexity: ProjectComplexity;
-  preferredColourScheme: ColourScheme;
   designStyle: DesignStyle;
   owner: PersonProfile;
   primaryUser: PersonProfile;
-  projectBudget: number;
   floorArea: number;
+  visibleFeatures?: string;
+  spacesRequired?: string;
+  measurement?: string;
   numberOfFloors: number;
   numberOfBedrooms: number;
   numberOfBathrooms: number;
@@ -203,9 +213,7 @@ export type ProjectInput = {
   naturalFeatures: NaturalFeature;
   views: ViewType;
   accessRoads: AccessRoad;
-  neighbourhoodCharacter: NeighbourhoodCharacter;
   existingUtilities: "Available" | "Partial" | "Not Available";
-  environmentalConstraints: EnvironmentalSensitivity;
   basement: boolean;
   largeOpenSpaces: boolean;
   cantileversOrBalconies: boolean;
@@ -633,7 +641,7 @@ function seedEstimates(): ProjectRecord[] {
         architecturalScope: "Full Design",
         foundationType: "Strip",
         structuralSystem: "Reinforced Concrete Frame",
-      },
+      } as ProjectInput,
       1,
       "2026-06-14T10:00:00.000Z",
     ),
@@ -671,7 +679,7 @@ function seedEstimates(): ProjectRecord[] {
         architecturalScope: "Design + Supervision",
         foundationType: "Raft",
         structuralSystem: "Reinforced Concrete Frame",
-      },
+      } as ProjectInput,
       2,
       "2026-06-18T15:30:00.000Z",
     ),
