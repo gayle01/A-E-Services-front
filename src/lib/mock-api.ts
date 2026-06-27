@@ -37,6 +37,7 @@ export const LAND_ASSISTANCE_OPTIONS = [
   "Assistance to re-demarcate land",
 ] as const;
 export const ENVIRONMENTAL_ZONES = ["Cultural sensitivity", "Environmental sensitive"] as const;
+export const ZONING_OPTIONS = ["Residential", "Commercial", "Industrial", "Agricultural", "Institutional", "Mixed Use", "Special"] as const;
 export const SITE_ZONE_TYPES = ["Residential", "Religious", "Civic", "Mixed"] as const;
 export const ENVIRONMENTAL_SENSITIVITIES = ["Low", "Medium", "High"] as const;
 export const TOPOGRAPHIES = ["Flat", "Mild", "Steep"] as const;
@@ -131,6 +132,7 @@ export type OwnLandOption = (typeof OWN_LAND_OPTIONS)[number];
 export type LandTenure = (typeof LAND_TENURES)[number];
 export type LandAssistanceOption = (typeof LAND_ASSISTANCE_OPTIONS)[number];
 export type EnvironmentalZone = (typeof ENVIRONMENTAL_ZONES)[number];
+export type ZoningOption = (typeof ZONING_OPTIONS)[number];
 export type SiteZoneType = (typeof SITE_ZONE_TYPES)[number];
 export type EnvironmentalSensitivity = (typeof ENVIRONMENTAL_SENSITIVITIES)[number];
 export type Topography = (typeof TOPOGRAPHIES)[number];
@@ -188,10 +190,9 @@ export type ProjectInput = {
   indentureAvailable: boolean;
   landTenure: LandTenure;
   plotSize: number;
-  zoning: string;
+  zoning: ZoningOption;
   environmentalZone: EnvironmentalZone;
   siteZoneType: SiteZoneType;
-  environmentalSensitivity: EnvironmentalSensitivity;
   siteTopography: Topography;
   soilSurvey: boolean;
   topographicSurvey: boolean;

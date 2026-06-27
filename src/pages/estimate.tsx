@@ -23,8 +23,8 @@ import {
   CONSTRUCTION_METHODS,
   CONSTRUCTION_PHASES,
   DESIGN_STYLES,
-  ENVIRONMENTAL_SENSITIVITIES,
   ENVIRONMENTAL_ZONES,
+  ENVIRONMENTAL_SENSITIVITIES,
   EXPECTED_COMPLETION_TIMES,
   FINISH_LEVELS,
   FOUNDATION_TYPES,
@@ -47,6 +47,7 @@ import {
   STRUCTURAL_SYSTEMS,
   TOPOGRAPHIES,
   VIEWS,
+  ZONING_OPTIONS,
   calculateStructuralComplexity,
   type ProjectInput,
   useCreateEstimate,
@@ -122,10 +123,9 @@ const estimateSchema = z.object({
   indentureAvailable: z.boolean(),
   landTenure: z.enum(LAND_TENURES),
   plotSize: z.coerce.number().min(0, "Plot size must be zero or more."),
-  zoning: z.string().min(1, "Zoning is required."),
+  zoning: z.enum(ZONING_OPTIONS),
   environmentalZone: z.enum(ENVIRONMENTAL_ZONES),
   siteZoneType: z.enum(SITE_ZONE_TYPES),
-  environmentalSensitivity: z.enum(ENVIRONMENTAL_SENSITIVITIES),
   siteTopography: z.enum(TOPOGRAPHIES),
   soilSurvey: z.boolean(),
   topographicSurvey: z.boolean(),
@@ -237,7 +237,6 @@ export default function EstimateForm() {
       zoning: "Residential",
       environmentalZone: "Cultural sensitivity",
       siteZoneType: "Residential",
-      environmentalSensitivity: "Low",
       siteTopography: "Flat",
       soilSurvey: false,
       topographicSurvey: false,
@@ -288,7 +287,6 @@ export default function EstimateForm() {
         "landTitleAvailable",
         "indentureAvailable",
         "siteZoneType",
-        "environmentalSensitivity",
         "siteTopography",
         "soilSurvey",
         "topographicSurvey",
@@ -911,21 +909,30 @@ export default function EstimateForm() {
                       </div>
                     )}
 
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="zoning"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Zoning</FormLabel>
+                    <FormField
+                      control={form.control}
+                      name="zoning"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Zoning</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                              <Input placeholder="Zoning" {...field} />
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select zoning" />
+                              </SelectTrigger>
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                            <SelectContent>
+                              {ZONING_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <FormField
                       control={form.control}
@@ -1431,18 +1438,18 @@ export default function EstimateForm() {
                       />
                       <FormField
                         control={form.control}
-                        name="environmentalSensitivity"
+                        name="environmentalConstraints"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Environmental Sensitivity</FormLabel>
+                            <FormLabel>Environmental Constraints</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select sensitivity" />
+                                  <SelectValue placeholder="Select constraints" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {ENVIRONMENTAL_SENSITIVITIES.map((option) => (
+                                {["Low", "Medium", "High"].map((option) => (
                                   <SelectItem key={option} value={option}>
                                     {option}
                                   </SelectItem>
