@@ -22,6 +22,26 @@ export const ARCHITECTURAL_SCOPES = ["Concept Design", "Full Design", "Design + 
 export const FOUNDATION_TYPES = ["Strip", "Raft", "Pile", "Combined"] as const;
 export const STRUCTURAL_SYSTEMS = ["Load-Bearing", "Reinforced Concrete Frame", "Steel Frame", "Hybrid"] as const;
 export const AGE_GROUPS = ["under-25", "25-34", "35-44", "45-54", "55-plus"] as const;
+export const BUILDING_USES = ["Single-family residence", "Multi-family residence", "Retail", "Office", "Mixed-use", "Industrial", "Institutional", "Hospitality", "Educational", "Healthcare", "Agricultural"] as const;
+export const CONSTRUCTION_METHODS = ["Conventional", "Modular", "Prefabricated", "Hybrid"] as const;
+export const PROJECT_TYPES = ["New Build", "Renovation", "Extension", "Conversion", "Adaptive Reuse", "Mixed Use"] as const;
+export const CONSTRUCTION_PHASES = ["Single Phase", "Multi Phase", "Staged", "Unknown"] as const;
+export const PROJECT_COMPLEXITIES = ["Low", "Medium", "High"] as const;
+export const COLOUR_SCHEMES = ["Neutral", "Warm", "Cool", "Bold", "Monochrome", "Custom"] as const;
+export const DESIGN_STYLES = ["Introvert", "Extrovert", "Balanced"] as const;
+export const OWN_LAND_OPTIONS = ["Yes", "No", "Maybe"] as const;
+export const LAND_TENURES = ["Freehold", "Leasehold", "Don't Know"] as const;
+export const SITE_ZONE_TYPES = ["Residential", "Religious", "Civic", "Mixed"] as const;
+export const ENVIRONMENTAL_SENSITIVITIES = ["Low", "Medium", "High"] as const;
+export const TOPOGRAPHIES = ["Flat", "Mild", "Steep"] as const;
+export const NATURAL_FEATURES = ["None", "Water", "Rocks", "Trees", "Mixed"] as const;
+export const VIEWS = ["Open", "Partial", "Limited"] as const;
+export const ACCESS_ROADS = ["Good", "Fair", "Poor"] as const;
+export const NEIGHBOURHOOD_CHARACTER = ["Residential", "Commercial", "Mixed", "Heritage", "Suburban"] as const;
+export const RELATIONSHIP_OPTIONS = ["Self", "Spouse", "Child", "Parent", "Partner", "Relative", "Other"] as const;
+export const SOCIAL_STATUSES = ["Single", "Married", "Divorced", "Widowed", "Separated", "Prefer not to say"] as const;
+export const FAMILY_STATUSES = ["No dependents", "Young family", "Extended family", "Multi-generational", "Prefer not to say"] as const;
+export const EXPECTED_COMPLETION_TIMES = ["6 months", "9 months", "12 months", "18 months", "24 months", "36+ months"] as const;
 export const RELIGIONS = [
   "Christianity",
   "Islam",
@@ -94,21 +114,37 @@ export const MATERIAL_NAMES = ["Cement", "Sand", "Stone", "Blocks", "Steel", "Ro
 export type AgeGroup = (typeof AGE_GROUPS)[number];
 export type Religion = (typeof RELIGIONS)[number];
 export type BuildingType = (typeof BUILDING_TYPES)[number];
-export type RoofType = (typeof ROOF_TYPES)[number];
-export type SoilCondition = (typeof SOIL_CONDITIONS)[number];
-export type SiteAccessibility = (typeof SITE_ACCESSIBILITY)[number];
-export type FinishLevel = (typeof FINISH_LEVELS)[number];
-export type BuildingShape = (typeof BUILDING_SHAPES)[number];
-export type RoofComplexity = (typeof ROOF_COMPLEXITIES)[number];
-export type ArchitecturalScope = (typeof ARCHITECTURAL_SCOPES)[number];
-export type FoundationType = (typeof FOUNDATION_TYPES)[number];
-export type StructuralSystem = (typeof STRUCTURAL_SYSTEMS)[number];
+export type BuildingUse = (typeof BUILDING_USES)[number];
+export type ConstructionMethod = (typeof CONSTRUCTION_METHODS)[number];
+export type ProjectType = (typeof PROJECT_TYPES)[number];
+export type ConstructionPhase = (typeof CONSTRUCTION_PHASES)[number];
+export type ProjectComplexity = (typeof PROJECT_COMPLEXITIES)[number];
+export type ColourScheme = (typeof COLOUR_SCHEMES)[number];
+export type DesignStyle = (typeof DESIGN_STYLES)[number];
+export type OwnLandOption = (typeof OWN_LAND_OPTIONS)[number];
+export type LandTenure = (typeof LAND_TENURES)[number];
+export type SiteZoneType = (typeof SITE_ZONE_TYPES)[number];
+export type EnvironmentalSensitivity = (typeof ENVIRONMENTAL_SENSITIVITIES)[number];
+export type Topography = (typeof TOPOGRAPHIES)[number];
+export type NaturalFeature = (typeof NATURAL_FEATURES)[number];
+export type ViewType = (typeof VIEWS)[number];
+export type AccessRoad = (typeof ACCESS_ROADS)[number];
+export type NeighbourhoodCharacter = (typeof NEIGHBOURHOOD_CHARACTER)[number];
+export type RelationshipOption = (typeof RELATIONSHIP_OPTIONS)[number];
+export type SocialStatus = (typeof SOCIAL_STATUSES)[number];
+export type FamilyStatus = (typeof FAMILY_STATUSES)[number];
+export type ExpectedCompletionTime = (typeof EXPECTED_COMPLETION_TIMES)[number];
 
 export type PersonProfile = {
   name: string;
   ageGroup: AgeGroup;
   profession: string;
   religion: Religion;
+  annualIncome?: number;
+  ethnicity?: string;
+  socialStatus?: SocialStatus;
+  familyStatus?: FamilyStatus;
+  relationshipToOwner?: RelationshipOption;
 };
 
 export type ProjectInput = {
@@ -116,8 +152,15 @@ export type ProjectInput = {
   projectName: string;
   location: string;
   buildingType: BuildingType;
+  projectType: ProjectType;
+  constructionPhasing: ConstructionPhase;
+  expectedCompletionTime: ExpectedCompletionTime;
+  projectComplexity: ProjectComplexity;
+  preferredColourScheme: ColourScheme;
+  designStyle: DesignStyle;
   owner: PersonProfile;
   primaryUser: PersonProfile;
+  projectBudget: number;
   floorArea: number;
   numberOfFloors: number;
   numberOfBedrooms: number;
@@ -127,6 +170,26 @@ export type ProjectInput = {
   siteAccessibility: SiteAccessibility;
   finishLevel: FinishLevel;
   buildingShape: BuildingShape;
+  buildingUse: BuildingUse;
+  constructionMethod: ConstructionMethod;
+  ownLand: OwnLandOption;
+  sitePlanAvailable: boolean;
+  landTitleAvailable: boolean;
+  indentureAvailable: boolean;
+  landTenure: LandTenure;
+  plotSize: number;
+  zoning: string;
+  siteZoneType: SiteZoneType;
+  environmentalSensitivity: EnvironmentalSensitivity;
+  siteTopography: Topography;
+  soilSurvey: boolean;
+  topographicSurvey: boolean;
+  naturalFeatures: NaturalFeature;
+  views: ViewType;
+  accessRoads: AccessRoad;
+  neighbourhoodCharacter: NeighbourhoodCharacter;
+  existingUtilities: "Available" | "Partial" | "Not Available";
+  environmentalConstraints: EnvironmentalSensitivity;
   basement: boolean;
   largeOpenSpaces: boolean;
   cantileversOrBalconies: boolean;
@@ -134,6 +197,16 @@ export type ProjectInput = {
   architecturalScope: ArchitecturalScope;
   foundationType: FoundationType;
   structuralSystem: StructuralSystem;
+  architecturalServices: boolean;
+  structuralEngineeringServices: boolean;
+  mepEngineering: boolean;
+  interiorDesign: boolean;
+  customElements: boolean;
+  postContractServices: boolean;
+  architectReferral: boolean;
+  serviceReferral: boolean;
+  referralPercentage: number;
+  complimentaryServices: boolean;
 };
 
 export type MaterialEstimateItem = {

@@ -15,18 +15,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   ARCHITECTURAL_SCOPES,
   AGE_GROUPS,
+  ACCESS_ROADS,
   BUILDING_SHAPES,
   BUILDING_TYPES,
+  BUILDING_USES,
+  COLOUR_SCHEMES,
+  CONSTRUCTION_METHODS,
+  CONSTRUCTION_PHASES,
+  DESIGN_STYLES,
+  ENVIRONMENTAL_SENSITIVITIES,
+  EXPECTED_COMPLETION_TIMES,
+  FAMILY_STATUSES,
   FINISH_LEVELS,
   FOUNDATION_TYPES,
+  LAND_TENURES,
   LOCATION_OPTIONS,
+  SOCIAL_STATUSES,
+  NATURAL_FEATURES,
+  NEIGHBOURHOOD_CHARACTER,
+  OWN_LAND_OPTIONS,
   PROFESSIONS,
+  PROJECT_COMPLEXITIES,
+  PROJECT_TYPES,
   RELIGIONS,
+  RELATIONSHIP_OPTIONS,
   ROOF_COMPLEXITIES,
   ROOF_TYPES,
   SITE_ACCESSIBILITY,
+  SITE_ZONE_TYPES,
   SOIL_CONDITIONS,
   STRUCTURAL_SYSTEMS,
+  TOPOGRAPHIES,
+  VIEWS,
   calculateStructuralComplexity,
   type ProjectInput,
   useCreateEstimate,
@@ -37,15 +57,17 @@ const stepConfig = [
   { title: "Project Information", icon: ClipboardList },
   { title: "Owner Information", icon: Users },
   { title: "Primary User", icon: Users },
+  { title: "Project Parameters", icon: ClipboardList },
   { title: "Planning Profile", icon: Home },
-  { title: "Building Details", icon: Building2 },
-  { title: "Site + Fees", icon: ShieldCheck },
+  { title: "Site Conditions", icon: Layers3 },
+  { title: "Professional Services", icon: Building2 },
+  { title: "Referral & Finish", icon: ShieldCheck },
 ];
 
 const formatAgeGroup = (ageGroup: string) => {
   if (ageGroup === "under-25") return "Under 25";
   if (ageGroup === "55-plus") return "55+";
-  return ageGroup.replace("-", " – ");
+  return ageGroup.replace("-", " - ");
 };
 
 const estimateSchema = z.object({
@@ -53,18 +75,34 @@ const estimateSchema = z.object({
   projectName: z.string().min(2, "Project name is required."),
   location: z.string().min(1, "Location is required."),
   buildingType: z.enum(BUILDING_TYPES),
+  projectType: z.enum(PROJECT_TYPES),
+  constructionPhasing: z.enum(CONSTRUCTION_PHASES),
+  expectedCompletionTime: z.enum(EXPECTED_COMPLETION_TIMES),
+  projectComplexity: z.enum(PROJECT_COMPLEXITIES),
+  preferredColourScheme: z.enum(COLOUR_SCHEMES),
+  designStyle: z.enum(DESIGN_STYLES),
   owner: z.object({
     name: z.string().min(2, "Owner name is required."),
     ageGroup: z.enum(AGE_GROUPS),
     profession: z.string().min(2, "Owner profession is required."),
     religion: z.enum(RELIGIONS),
+    annualIncome: z.coerce.number().min(0, "Owner annual income is required."),
+    ethnicity: z.string().optional(),
+    socialStatus: z.enum(SOCIAL_STATUSES).optional(),
+    familyStatus: z.enum(FAMILY_STATUSES).optional(),
   }),
   primaryUser: z.object({
     name: z.string().min(2, "Primary user name is required."),
     ageGroup: z.enum(AGE_GROUPS),
     profession: z.string().min(2, "Primary user profession is required."),
     religion: z.enum(RELIGIONS),
+    annualIncome: z.coerce.number().min(0, "Primary user annual income is required."),
+    ethnicity: z.string().optional(),
+    relationshipToOwner: z.enum(RELATIONSHIP_OPTIONS).optional(),
+    socialStatus: z.enum(SOCIAL_STATUSES).optional(),
+    familyStatus: z.enum(FAMILY_STATUSES).optional(),
   }),
+  projectBudget: z.coerce.number().min(0, "Project budget must be zero or more."),
   floorArea: z.coerce.number().min(10, "Floor area must be at least 10 m²."),
   numberOfFloors: z.coerce.number().min(1, "Number of floors must be at least 1."),
   numberOfBedrooms: z.coerce.number().min(0),
@@ -74,6 +112,26 @@ const estimateSchema = z.object({
   siteAccessibility: z.enum(SITE_ACCESSIBILITY),
   finishLevel: z.enum(FINISH_LEVELS),
   buildingShape: z.enum(BUILDING_SHAPES),
+  buildingUse: z.enum(BUILDING_USES),
+  constructionMethod: z.enum(CONSTRUCTION_METHODS),
+  ownLand: z.enum(OWN_LAND_OPTIONS),
+  sitePlanAvailable: z.boolean(),
+  landTitleAvailable: z.boolean(),
+  indentureAvailable: z.boolean(),
+  landTenure: z.enum(LAND_TENURES),
+  plotSize: z.coerce.number().min(0, "Plot size must be zero or more."),
+  zoning: z.string().min(1, "Zoning is required."),
+  siteZoneType: z.enum(SITE_ZONE_TYPES),
+  environmentalSensitivity: z.enum(ENVIRONMENTAL_SENSITIVITIES),
+  siteTopography: z.enum(TOPOGRAPHIES),
+  soilSurvey: z.boolean(),
+  topographicSurvey: z.boolean(),
+  naturalFeatures: z.enum(NATURAL_FEATURES),
+  views: z.enum(VIEWS),
+  accessRoads: z.enum(ACCESS_ROADS),
+  neighbourhoodCharacter: z.enum(NEIGHBOURHOOD_CHARACTER),
+  existingUtilities: z.enum(["Available", "Partial", "Not Available"] as const),
+  environmentalConstraints: z.enum(ENVIRONMENTAL_SENSITIVITIES),
   basement: z.boolean(),
   largeOpenSpaces: z.boolean(),
   cantileversOrBalconies: z.boolean(),
@@ -81,6 +139,16 @@ const estimateSchema = z.object({
   architecturalScope: z.enum(ARCHITECTURAL_SCOPES),
   foundationType: z.enum(FOUNDATION_TYPES),
   structuralSystem: z.enum(STRUCTURAL_SYSTEMS),
+  architecturalServices: z.boolean(),
+  structuralEngineeringServices: z.boolean(),
+  mepEngineering: z.boolean(),
+  interiorDesign: z.boolean(),
+  customElements: z.boolean(),
+  postContractServices: z.boolean(),
+  architectReferral: z.boolean(),
+  serviceReferral: z.boolean(),
+  referralPercentage: z.coerce.number().min(0, "Referral percentage must be zero or more."),
+  complimentaryServices: z.boolean(),
 });
 
 type FormValues = z.infer<typeof estimateSchema>;
@@ -116,17 +184,33 @@ export default function EstimateForm() {
       projectName: "",
       location: "accra",
       buildingType: "Residential",
+      projectType: "New Build",
+      constructionPhasing: "Single Phase",
+      expectedCompletionTime: "12 months",
+      projectComplexity: "Medium",
+      preferredColourScheme: "Neutral",
+      designStyle: "Balanced",
+      projectBudget: 0,
       owner: {
         name: "",
         ageGroup: "35-44",
         profession: "",
         religion: "Christianity",
+        annualIncome: 0,
+        ethnicity: "",
+        socialStatus: "Single",
+        familyStatus: "No dependents",
       },
       primaryUser: {
         name: "",
         ageGroup: "35-44",
         profession: "",
         religion: "Christianity",
+        annualIncome: 0,
+        ethnicity: "",
+        relationshipToOwner: "Self",
+        socialStatus: "Single",
+        familyStatus: "No dependents",
       },
       floorArea: 120,
       numberOfFloors: 1,
@@ -137,6 +221,26 @@ export default function EstimateForm() {
       siteAccessibility: "Urban",
       finishLevel: "Standard",
       buildingShape: "Rectangular",
+      buildingUse: "Single-family residence",
+      constructionMethod: "Conventional",
+      ownLand: "Yes",
+      sitePlanAvailable: false,
+      landTitleAvailable: false,
+      indentureAvailable: false,
+      landTenure: "Freehold",
+      plotSize: 0,
+      zoning: "Residential",
+      siteZoneType: "Residential",
+      environmentalSensitivity: "Low",
+      siteTopography: "Flat",
+      soilSurvey: false,
+      topographicSurvey: false,
+      naturalFeatures: "None",
+      views: "Open",
+      accessRoads: "Good",
+      neighbourhoodCharacter: "Residential",
+      existingUtilities: "Available",
+      environmentalConstraints: "Low",
       basement: false,
       largeOpenSpaces: false,
       cantileversOrBalconies: false,
@@ -144,6 +248,16 @@ export default function EstimateForm() {
       architecturalScope: "Full Design",
       foundationType: "Strip",
       structuralSystem: "Reinforced Concrete Frame",
+      architecturalServices: true,
+      structuralEngineeringServices: true,
+      mepEngineering: false,
+      interiorDesign: false,
+      customElements: false,
+      postContractServices: false,
+      architectReferral: false,
+      serviceReferral: false,
+      referralPercentage: 0,
+      complimentaryServices: false,
     },
     mode: "onTouched",
   });
@@ -157,11 +271,54 @@ export default function EstimateForm() {
   const nextStep = async () => {
     const stepFields: Record<number, Array<keyof FormValues | string>> = {
       0: ["projectName", "location", "buildingType"],
-      1: ["owner.name", "owner.ageGroup", "owner.profession", "owner.religion"],
-      2: ["primaryUser.name", "primaryUser.ageGroup", "primaryUser.profession", "primaryUser.religion"],
-      3: ["floorArea", "numberOfFloors", "numberOfBedrooms", "numberOfBathrooms", "roofType", "buildingShape"],
-      4: ["soilCondition", "siteAccessibility", "basement", "largeOpenSpaces", "cantileversOrBalconies", "roofComplexity"],
-      5: ["finishLevel", "architecturalScope", "foundationType", "structuralSystem"],
+      1: ["owner.name", "owner.ageGroup", "owner.profession", "owner.religion", "owner.socialStatus", "owner.familyStatus", "owner.annualIncome"],
+      2: ["primaryUser.name", "primaryUser.ageGroup", "primaryUser.profession", "primaryUser.religion", "primaryUser.relationshipToOwner", "primaryUser.socialStatus", "primaryUser.familyStatus", "primaryUser.annualIncome"],
+      3: ["projectBudget", "projectType", "constructionPhasing", "expectedCompletionTime", "projectComplexity", "preferredColourScheme", "designStyle", "buildingUse", "constructionMethod"],
+      4: ["floorArea", "numberOfFloors", "numberOfBedrooms", "numberOfBathrooms", "roofType", "buildingShape"],
+      5: [
+        "soilCondition",
+        "siteAccessibility",
+        "ownLand",
+        "sitePlanAvailable",
+        "landTitleAvailable",
+        "indentureAvailable",
+        "landTenure",
+        "plotSize",
+        "zoning",
+        "siteZoneType",
+        "environmentalSensitivity",
+        "siteTopography",
+        "soilSurvey",
+        "topographicSurvey",
+        "naturalFeatures",
+        "views",
+        "accessRoads",
+        "neighbourhoodCharacter",
+        "existingUtilities",
+        "environmentalConstraints",
+        "basement",
+        "largeOpenSpaces",
+        "cantileversOrBalconies",
+        "roofComplexity",
+      ],
+      6: [
+        "architecturalServices",
+        "structuralEngineeringServices",
+        "mepEngineering",
+        "interiorDesign",
+        "customElements",
+        "postContractServices",
+        "finishLevel",
+        "architecturalScope",
+        "foundationType",
+        "structuralSystem",
+      ],
+      7: [
+        "architectReferral",
+        "serviceReferral",
+        "referralPercentage",
+        "complimentaryServices",
+      ],
     };
 
     const valid = await form.trigger(stepFields[currentStep] as never[]);
@@ -389,6 +546,71 @@ export default function EstimateForm() {
                         </FormItem>
                       )}
                     />
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="owner.socialStatus"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Social Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select social status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {SOCIAL_STATUSES.map((status) => (
+                                  <SelectItem key={status} value={status}>
+                                    {status}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="owner.familyStatus"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Family Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select family status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FAMILY_STATUSES.map((status) => (
+                                  <SelectItem key={status} value={status}>
+                                    {status}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="owner.annualIncome"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Annual Income</FormLabel>
+                          <FormControl>
+                            <Input type="number" min={0} placeholder="Owner annual income" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 )}
 
@@ -476,17 +698,326 @@ export default function EstimateForm() {
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="primaryUser.relationshipToOwner"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Relationship to Owner</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select relationship" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {RELATIONSHIP_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="primaryUser.socialStatus"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Social Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select social status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {SOCIAL_STATUSES.map((status) => (
+                                  <SelectItem key={status} value={status}>
+                                    {status}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="primaryUser.familyStatus"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Family Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select family status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FAMILY_STATUSES.map((status) => (
+                                  <SelectItem key={status} value={status}>
+                                    {status}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="primaryUser.annualIncome"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Annual Income</FormLabel>
+                          <FormControl>
+                            <Input type="number" min={0} placeholder="Primary user annual income" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 )}
 
                 {currentStep === 3 && (
                   <div className="space-y-6">
                     <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <Home className="h-5 w-5 text-primary" />
-                      Planning Profile
+                      <ClipboardList className="h-5 w-5 text-primary" />
+                      Project Parameters
                     </h2>
 
                     <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="projectBudget"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Project Budget</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="projectType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Project Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select project type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {PROJECT_TYPES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="buildingUse"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Building Use</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select building use" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {BUILDING_USES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="constructionMethod"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Construction Method</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select construction method" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {CONSTRUCTION_METHODS.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="constructionPhasing"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Construction Phasing</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select phasing" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {CONSTRUCTION_PHASES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="expectedCompletionTime"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Expected Completion Time</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a timeline" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {EXPECTED_COMPLETION_TIMES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="projectComplexity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Project Complexity</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select complexity" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {PROJECT_COMPLEXITIES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="preferredColourScheme"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Preferred Colour Scheme</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select colour scheme" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {COLOUR_SCHEMES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="designStyle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Design Style</FormLabel>
+                          <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
+                            {DESIGN_STYLES.map((style) => (
+                              <StepButton key={style} selected={field.value === style} onSelect={() => field.onChange(style)}>
+                                {style}
+                              </StepButton>
+                            ))}
+                          </RadioGroup>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+
+                {currentStep === 4 && (
+                  <>
+                    <div className="space-y-6">
+                      <h2 className="text-2xl font-bold flex items-center gap-2">
+                        <Home className="h-5 w-5 text-primary" />
+                        Planning Profile
+                      </h2>
                       <FormField
                         control={form.control}
                         name="floorArea"
@@ -588,10 +1119,8 @@ export default function EstimateForm() {
                         </FormItem>
                       )}
                     />
-                  </div>
-                )}
-
-                {currentStep === 4 && (
+                  </>
+                )}{currentStep === 5 && (
                   <div className="space-y-6">
                     <h2 className="text-2xl font-bold flex items-center gap-2">
                       <Layers3 className="h-5 w-5 text-primary" />
@@ -650,7 +1179,367 @@ export default function EstimateForm() {
                       />
                     </div>
 
+                    <div className="grid md:grid-cols-3 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="ownLand"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Own Land</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Own land?" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {OWN_LAND_OPTIONS.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="landTenure"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Land Tenure</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select tenure" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {LAND_TENURES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="plotSize"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Plot Size (m²)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="sitePlanAvailable"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Site Plan Available</FormLabel>
+                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="landTitleAvailable"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Land Title Available</FormLabel>
+                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="indentureAvailable"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Indenture Available</FormLabel>
+                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="zoning"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Zoning</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Zoning" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="siteZoneType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Site Zone Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select site zone" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {SITE_ZONE_TYPES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="environmentalSensitivity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Environmental Sensitivity</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select sensitivity" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {ENVIRONMENTAL_SENSITIVITIES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="siteTopography"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Site Topography</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select topography" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {TOPOGRAPHIES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="existingUtilities"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Existing Utilities</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select utility status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {['Available', 'Partial', 'Not Available'].map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="environmentalConstraints"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Environmental Constraints</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select constraints" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {ENVIRONMENTAL_SENSITIVITIES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="neighbourhoodCharacter"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Neighbourhood Character</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select character" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {NEIGHBOURHOOD_CHARACTER.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="views"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Views</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select views" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {VIEWS.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="accessRoads"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Access Roads</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select access roads" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {ACCESS_ROADS.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="soilSurvey"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Soil Survey</FormLabel>
+                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="topographicSurvey"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Topographic Survey</FormLabel>
+                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={form.control}
                         name="basement"
@@ -666,6 +1555,9 @@ export default function EstimateForm() {
                           </FormItem>
                         )}
                       />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
                         name="largeOpenSpaces"
@@ -696,29 +1588,28 @@ export default function EstimateForm() {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="roofComplexity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Roof Complexity</FormLabel>
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
+                              {ROOF_COMPLEXITIES.map((option) => (
+                                <StepButton key={option} selected={field.value === option} onSelect={() => field.onChange(option)}>
+                                  {option}
+                                </StepButton>
+                              ))}
+                            </RadioGroup>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
-
-                    <FormField
-                      control={form.control}
-                      name="roofComplexity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Roof Complexity</FormLabel>
-                          <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
-                            {ROOF_COMPLEXITIES.map((option) => (
-                              <StepButton key={option} selected={field.value === option} onSelect={() => field.onChange(option)}>
-                                {option}
-                              </StepButton>
-                            ))}
-                          </RadioGroup>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
                 )}
 
-                {currentStep === 5 && (
+                {currentStep === 6 && (
                   <div className="space-y-8">
                     <h2 className="text-2xl font-bold flex items-center gap-2">
                       <ShieldCheck className="h-5 w-5 text-primary" />
@@ -818,13 +1709,189 @@ export default function EstimateForm() {
                       />
                     </div>
 
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="architecturalServices"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Architectural Services</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include architectural services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="structuralEngineeringServices"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Structural Engineering</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include structural engineering services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="mepEngineering"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>MEP Engineering</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include MEP engineering services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="interiorDesign"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Interior Design</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include interior design services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="customElements"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Custom Elements</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include custom architectural elements</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="postContractServices"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Post-Contract Services</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include post-contract support</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <div className="rounded-2xl border bg-muted/40 p-5">
                       <h3 className="font-semibold mb-2">Automatic complexity summary</h3>
                       <p className="text-sm text-muted-foreground">
-                        Score: <span className="font-semibold text-foreground">{complexity.score}</span> · Level: <span className="font-semibold text-foreground">{complexity.label}</span>
+                        Score: <span className="font-semibold text-foreground">{complexity.score}</span> - Level: <span className="font-semibold text-foreground">{complexity.label}</span>
                       </p>
                       <p className="text-sm text-muted-foreground mt-2">
                         This score will feed into the fee formulas, labour estimate, and duration estimate when the project is saved.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep === 7 && (
+                  <div className="space-y-8">
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                      Referral & Finish
+                    </h2>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="architectReferral"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Architect Referral</FormLabel>
+                              <p className="text-sm text-muted-foreground">Recommend an architect referral</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="serviceReferral"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Service Referral</FormLabel>
+                              <p className="text-sm text-muted-foreground">Recommend a service referral</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="referralPercentage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Referral Percentage</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="complimentaryServices"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Complimentary Services</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include complimentary services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="rounded-2xl border bg-muted/40 p-5">
+                      <h3 className="font-semibold mb-2">Final review</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Review the referral and finish settings before generating your project estimate. These values will be included in the final professional fee and service recommendations.
                       </p>
                     </div>
                   </div>
@@ -865,3 +1932,6 @@ export default function EstimateForm() {
     </MainLayout>
   );
 }
+
+
+
