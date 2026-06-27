@@ -24,11 +24,12 @@ import {
   CONSTRUCTION_PHASES,
   DESIGN_STYLES,
   ENVIRONMENTAL_SENSITIVITIES,
+  ENVIRONMENTAL_ZONES,
   EXPECTED_COMPLETION_TIMES,
-  FAMILY_STATUSES,
   FINISH_LEVELS,
   FOUNDATION_TYPES,
   LAND_TENURES,
+  MARITAL_STATUSES,
   LOCATION_OPTIONS,
   SOCIAL_STATUSES,
   NATURAL_FEATURES,
@@ -38,7 +39,6 @@ import {
   PROJECT_COMPLEXITIES,
   PROJECT_TYPES,
   RELIGIONS,
-  RELATIONSHIP_OPTIONS,
   ROOF_COMPLEXITIES,
   ROOF_TYPES,
   SITE_ACCESSIBILITY,
@@ -55,8 +55,8 @@ import { Building2, Calculator, ChevronLeft, ChevronRight, ClipboardList, Home, 
 
 const stepConfig = [
   { title: "Project Information", icon: ClipboardList },
-  { title: "Owner Information", icon: Users },
-  { title: "Primary User", icon: Users },
+  { title: "Client Information", icon: Users },
+  { title: "Land Information", icon: MapPin },
   { title: "Project Parameters", icon: ClipboardList },
   { title: "Planning Profile", icon: Home },
   { title: "Site Conditions", icon: Layers3 },
@@ -82,25 +82,23 @@ const estimateSchema = z.object({
   preferredColourScheme: z.enum(COLOUR_SCHEMES),
   designStyle: z.enum(DESIGN_STYLES),
   owner: z.object({
-    name: z.string().min(2, "Owner name is required."),
+    name: z.string().optional(),
     ageGroup: z.enum(AGE_GROUPS),
     profession: z.string().min(2, "Owner profession is required."),
     religion: z.enum(RELIGIONS),
     annualIncome: z.coerce.number().min(0, "Owner annual income is required."),
     ethnicity: z.string().optional(),
     socialStatus: z.enum(SOCIAL_STATUSES).optional(),
-    familyStatus: z.enum(FAMILY_STATUSES).optional(),
+    maritalStatus: z.enum(MARITAL_STATUSES).optional(),
   }),
   primaryUser: z.object({
-    name: z.string().min(2, "Primary user name is required."),
+    name: z.string().optional(),
     ageGroup: z.enum(AGE_GROUPS),
     profession: z.string().min(2, "Primary user profession is required."),
     religion: z.enum(RELIGIONS),
-    annualIncome: z.coerce.number().min(0, "Primary user annual income is required."),
     ethnicity: z.string().optional(),
-    relationshipToOwner: z.enum(RELATIONSHIP_OPTIONS).optional(),
     socialStatus: z.enum(SOCIAL_STATUSES).optional(),
-    familyStatus: z.enum(FAMILY_STATUSES).optional(),
+    maritalStatus: z.enum(MARITAL_STATUSES).optional(),
   }),
   projectBudget: z.coerce.number().min(0, "Project budget must be zero or more."),
   floorArea: z.coerce.number().min(10, "Floor area must be at least 10 m²."),
@@ -115,12 +113,17 @@ const estimateSchema = z.object({
   buildingUse: z.enum(BUILDING_USES),
   constructionMethod: z.enum(CONSTRUCTION_METHODS),
   ownLand: z.enum(OWN_LAND_OPTIONS),
+  landDocumentsHeld: z.string().optional(),
+  landAssistanceBuyLand: z.boolean(),
+  landAssistanceRegularizeDocuments: z.boolean(),
+  landAssistanceRedemarcateLand: z.boolean(),
   sitePlanAvailable: z.boolean(),
   landTitleAvailable: z.boolean(),
   indentureAvailable: z.boolean(),
   landTenure: z.enum(LAND_TENURES),
   plotSize: z.coerce.number().min(0, "Plot size must be zero or more."),
   zoning: z.string().min(1, "Zoning is required."),
+  environmentalZone: z.enum(ENVIRONMENTAL_ZONES),
   siteZoneType: z.enum(SITE_ZONE_TYPES),
   environmentalSensitivity: z.enum(ENVIRONMENTAL_SENSITIVITIES),
   siteTopography: z.enum(TOPOGRAPHIES),
@@ -198,19 +201,17 @@ export default function EstimateForm() {
         religion: "Christianity",
         annualIncome: 0,
         ethnicity: "",
-        socialStatus: "Single",
-        familyStatus: "No dependents",
+        socialStatus: "Employed",
+        maritalStatus: "Single",
       },
       primaryUser: {
         name: "",
         ageGroup: "35-44",
         profession: "",
         religion: "Christianity",
-        annualIncome: 0,
         ethnicity: "",
-        relationshipToOwner: "Self",
-        socialStatus: "Single",
-        familyStatus: "No dependents",
+        socialStatus: "Employed",
+        maritalStatus: "Single",
       },
       floorArea: 120,
       numberOfFloors: 1,
@@ -224,12 +225,17 @@ export default function EstimateForm() {
       buildingUse: "Single-family residence",
       constructionMethod: "Conventional",
       ownLand: "Yes",
+      landDocumentsHeld: "",
+      landAssistanceBuyLand: false,
+      landAssistanceRegularizeDocuments: false,
+      landAssistanceRedemarcateLand: false,
       sitePlanAvailable: false,
       landTitleAvailable: false,
       indentureAvailable: false,
       landTenure: "Freehold",
       plotSize: 0,
       zoning: "Residential",
+      environmentalZone: "Cultural sensitivity",
       siteZoneType: "Residential",
       environmentalSensitivity: "Low",
       siteTopography: "Flat",
@@ -271,20 +277,16 @@ export default function EstimateForm() {
   const nextStep = async () => {
     const stepFields: Record<number, Array<keyof FormValues | string>> = {
       0: ["projectName", "location", "buildingType"],
-      1: ["owner.name", "owner.ageGroup", "owner.profession", "owner.religion", "owner.socialStatus", "owner.familyStatus", "owner.annualIncome"],
-      2: ["primaryUser.name", "primaryUser.ageGroup", "primaryUser.profession", "primaryUser.religion", "primaryUser.relationshipToOwner", "primaryUser.socialStatus", "primaryUser.familyStatus", "primaryUser.annualIncome"],
+      1: ["owner.name", "owner.ageGroup", "owner.profession", "owner.annualIncome", "owner.religion", "owner.ethnicity", "owner.socialStatus", "owner.maritalStatus", "primaryUser.name", "primaryUser.ageGroup", "primaryUser.profession", "primaryUser.religion", "primaryUser.ethnicity", "primaryUser.socialStatus", "primaryUser.maritalStatus"],
+      2: ["ownLand", "landDocumentsHeld", "landAssistanceBuyLand", "landAssistanceRegularizeDocuments", "landAssistanceRedemarcateLand", "landTenure", "plotSize", "zoning", "environmentalZone"],
       3: ["projectBudget", "projectType", "constructionPhasing", "expectedCompletionTime", "projectComplexity", "preferredColourScheme", "designStyle", "buildingUse", "constructionMethod"],
       4: ["floorArea", "numberOfFloors", "numberOfBedrooms", "numberOfBathrooms", "roofType", "buildingShape"],
       5: [
         "soilCondition",
         "siteAccessibility",
-        "ownLand",
         "sitePlanAvailable",
         "landTitleAvailable",
         "indentureAvailable",
-        "landTenure",
-        "plotSize",
-        "zoning",
         "siteZoneType",
         "environmentalSensitivity",
         "siteTopography",
@@ -463,107 +465,351 @@ export default function EstimateForm() {
                 )}
 
                 {currentStep === 1 && (
+                  <div className="grid gap-6 xl:grid-cols-2">
+                    <Card className="border">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Users className="h-4 w-4 text-primary" />
+                          Owner Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-5">
+                        <FormField
+                          control={form.control}
+                          name="owner.name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Owner Name (Optional)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Owner full name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="owner.ageGroup"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Age Group</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select age group" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {AGE_GROUPS.map((ageGroup) => (
+                                    <SelectItem key={ageGroup} value={ageGroup}>
+                                      {formatAgeGroup(ageGroup)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="owner.profession"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Profession</FormLabel>
+                              <FormControl>
+                                <Input list="professions" placeholder="Owner profession" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="owner.annualIncome"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Annual Income</FormLabel>
+                              <FormControl>
+                                <Input type="number" min={0} placeholder="Owner annual income" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="owner.religion"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Religion</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select religion" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {RELIGIONS.map((religion) => (
+                                    <SelectItem key={religion} value={religion}>
+                                      {religion}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="owner.ethnicity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Ethnicity</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Owner ethnicity" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="owner.socialStatus"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Social Status</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select social status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {SOCIAL_STATUSES.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {status}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="owner.maritalStatus"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Marital Status</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select marital status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {MARITAL_STATUSES.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {status}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Users className="h-4 w-4 text-primary" />
+                          Primary User Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-5">
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Primary User Name (Optional)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Primary user full name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.ageGroup"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Age Group</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select age group" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {AGE_GROUPS.map((ageGroup) => (
+                                    <SelectItem key={ageGroup} value={ageGroup}>
+                                      {formatAgeGroup(ageGroup)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.profession"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Profession</FormLabel>
+                              <FormControl>
+                                <Input list="professions" placeholder="Primary user profession" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.religion"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Religion</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select religion" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {RELIGIONS.map((religion) => (
+                                    <SelectItem key={religion} value={religion}>
+                                      {religion}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.ethnicity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Ethnicity</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Primary user ethnicity" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.socialStatus"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Social Status</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select social status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {SOCIAL_STATUSES.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {status}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.maritalStatus"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Marital Status</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select marital status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {MARITAL_STATUSES.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {status}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {currentStep === 2 && (
                   <div className="space-y-6">
                     <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary" />
-                      Owner Information
+                      <MapPin className="h-5 w-5 text-primary" />
+                      Land Information
                     </h2>
-
-                    <FormField
-                      control={form.control}
-                      name="owner.name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Owner Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Owner full name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="owner.ageGroup"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Age Group</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select age group" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {AGE_GROUPS.map((ageGroup) => (
-                                <SelectItem key={ageGroup} value={ageGroup}>
-                                  {formatAgeGroup(ageGroup)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="owner.profession"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Profession</FormLabel>
-                          <FormControl>
-                            <Input list="professions" placeholder="Owner profession" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="owner.religion"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Religion</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select religion" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {RELIGIONS.map((religion) => (
-                                <SelectItem key={religion} value={religion}>
-                                  {religion}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
-                        name="owner.socialStatus"
+                        name="ownLand"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Social Status</FormLabel>
+                            <FormLabel>Own Land</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select social status" />
+                                  <SelectValue placeholder="Yes / No / Maybe" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {SOCIAL_STATUSES.map((status) => (
-                                  <SelectItem key={status} value={status}>
-                                    {status}
+                                {OWN_LAND_OPTIONS.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -572,22 +818,23 @@ export default function EstimateForm() {
                           </FormItem>
                         )}
                       />
+
                       <FormField
                         control={form.control}
-                        name="owner.familyStatus"
+                        name="landTenure"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Family Status</FormLabel>
+                            <FormLabel>Tenure</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select family status" />
+                                  <SelectValue placeholder="Select tenure" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {FAMILY_STATUSES.map((status) => (
-                                  <SelectItem key={status} value={status}>
-                                    {status}
+                                {LAND_TENURES.map((option) => (
+                                  <SelectItem key={option} value={option}>
+                                    {option}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -598,121 +845,102 @@ export default function EstimateForm() {
                       />
                     </div>
 
+                    {watchedValues.ownLand === "Yes" && (
+                      <FormField
+                        control={form.control}
+                        name="landDocumentsHeld"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Land Document Held</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Title deed, allocation letter, lease agreement" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {watchedValues.ownLand === "Maybe" && (
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <FormField
+                          control={form.control}
+                          name="landAssistanceBuyLand"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Assistance to Buy Land</FormLabel>
+                                <p className="text-sm text-muted-foreground">Help finding and purchasing land</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="landAssistanceRegularizeDocuments"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Regularize Documents</FormLabel>
+                                <p className="text-sm text-muted-foreground">Help fixing land paperwork</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="landAssistanceRedemarcateLand"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Re-demarcate Land</FormLabel>
+                                <p className="text-sm text-muted-foreground">Help redefining land boundaries</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="zoning"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Zoning</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Zoning" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <FormField
                       control={form.control}
-                      name="owner.annualIncome"
+                      name="environmentalZone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Annual Income</FormLabel>
-                          <FormControl>
-                            <Input type="number" min={0} placeholder="Owner annual income" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-
-                {currentStep === 2 && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary" />
-                      Primary User
-                    </h2>
-
-                    <FormField
-                      control={form.control}
-                      name="primaryUser.name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Primary User Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Primary user full name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="primaryUser.ageGroup"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Age Group</FormLabel>
+                          <FormLabel>Environmental Zone</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select age group" />
+                                <SelectValue placeholder="Select environmental zone" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {AGE_GROUPS.map((ageGroup) => (
-                                <SelectItem key={ageGroup} value={ageGroup}>
-                                  {formatAgeGroup(ageGroup)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="primaryUser.profession"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Profession</FormLabel>
-                          <FormControl>
-                            <Input list="professions" placeholder="Primary user profession" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="primaryUser.religion"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Religion</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select religion" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {RELIGIONS.map((religion) => (
-                                <SelectItem key={religion} value={religion}>
-                                  {religion}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="primaryUser.relationshipToOwner"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Relationship to Owner</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select relationship" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {RELATIONSHIP_OPTIONS.map((option) => (
+                              {ENVIRONMENTAL_ZONES.map((option) => (
                                 <SelectItem key={option} value={option}>
                                   {option}
                                 </SelectItem>
@@ -724,65 +952,14 @@ export default function EstimateForm() {
                       )}
                     />
 
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="primaryUser.socialStatus"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Social Status</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select social status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {SOCIAL_STATUSES.map((status) => (
-                                  <SelectItem key={status} value={status}>
-                                    {status}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="primaryUser.familyStatus"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Family Status</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select family status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {FAMILY_STATUSES.map((status) => (
-                                  <SelectItem key={status} value={status}>
-                                    {status}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
                     <FormField
                       control={form.control}
-                      name="primaryUser.annualIncome"
+                      name="plotSize"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Annual Income</FormLabel>
+                          <FormLabel>Plot Size (m²)</FormLabel>
                           <FormControl>
-                            <Input type="number" min={0} placeholder="Primary user annual income" {...field} />
+                            <Input type="number" min={0} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1182,70 +1359,6 @@ export default function EstimateForm() {
                     <div className="grid md:grid-cols-3 gap-6">
                       <FormField
                         control={form.control}
-                        name="ownLand"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Own Land</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Own land?" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {OWN_LAND_OPTIONS.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="landTenure"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Land Tenure</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select tenure" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {LAND_TENURES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="plotSize"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Plot Size (m²)</FormLabel>
-                            <FormControl>
-                              <Input type="number" min={0} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
                         name="sitePlanAvailable"
                         render={({ field }) => (
                           <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
@@ -1290,20 +1403,6 @@ export default function EstimateForm() {
                         )}
                       />
                     </div>
-
-                    <FormField
-                      control={form.control}
-                      name="zoning"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Zoning</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Zoning" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <FormField

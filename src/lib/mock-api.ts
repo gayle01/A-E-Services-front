@@ -31,6 +31,12 @@ export const COLOUR_SCHEMES = ["Neutral", "Warm", "Cool", "Bold", "Monochrome", 
 export const DESIGN_STYLES = ["Introvert", "Extrovert", "Balanced"] as const;
 export const OWN_LAND_OPTIONS = ["Yes", "No", "Maybe"] as const;
 export const LAND_TENURES = ["Freehold", "Leasehold", "Don't Know"] as const;
+export const LAND_ASSISTANCE_OPTIONS = [
+  "Assistance to buy land",
+  "Assistance to regularize documents",
+  "Assistance to re-demarcate land",
+] as const;
+export const ENVIRONMENTAL_ZONES = ["Cultural sensitivity", "Environmental sensitive"] as const;
 export const SITE_ZONE_TYPES = ["Residential", "Religious", "Civic", "Mixed"] as const;
 export const ENVIRONMENTAL_SENSITIVITIES = ["Low", "Medium", "High"] as const;
 export const TOPOGRAPHIES = ["Flat", "Mild", "Steep"] as const;
@@ -39,8 +45,8 @@ export const VIEWS = ["Open", "Partial", "Limited"] as const;
 export const ACCESS_ROADS = ["Good", "Fair", "Poor"] as const;
 export const NEIGHBOURHOOD_CHARACTER = ["Residential", "Commercial", "Mixed", "Heritage", "Suburban"] as const;
 export const RELATIONSHIP_OPTIONS = ["Self", "Spouse", "Child", "Parent", "Partner", "Relative", "Other"] as const;
-export const SOCIAL_STATUSES = ["Single", "Married", "Divorced", "Widowed", "Separated", "Prefer not to say"] as const;
-export const FAMILY_STATUSES = ["No dependents", "Young family", "Extended family", "Multi-generational", "Prefer not to say"] as const;
+export const SOCIAL_STATUSES = ["Student", "Employed", "Self-employed", "Business owner", "Public sector worker", "Private sector worker", "Retired", "Unemployed", "Other"] as const;
+export const MARITAL_STATUSES = ["Single", "Married", "Divorced", "Widowed", "Separated", "Prefer not to say"] as const;
 export const EXPECTED_COMPLETION_TIMES = ["6 months", "9 months", "12 months", "18 months", "24 months", "36+ months"] as const;
 export const RELIGIONS = [
   "Christianity",
@@ -123,6 +129,8 @@ export type ColourScheme = (typeof COLOUR_SCHEMES)[number];
 export type DesignStyle = (typeof DESIGN_STYLES)[number];
 export type OwnLandOption = (typeof OWN_LAND_OPTIONS)[number];
 export type LandTenure = (typeof LAND_TENURES)[number];
+export type LandAssistanceOption = (typeof LAND_ASSISTANCE_OPTIONS)[number];
+export type EnvironmentalZone = (typeof ENVIRONMENTAL_ZONES)[number];
 export type SiteZoneType = (typeof SITE_ZONE_TYPES)[number];
 export type EnvironmentalSensitivity = (typeof ENVIRONMENTAL_SENSITIVITIES)[number];
 export type Topography = (typeof TOPOGRAPHIES)[number];
@@ -132,18 +140,18 @@ export type AccessRoad = (typeof ACCESS_ROADS)[number];
 export type NeighbourhoodCharacter = (typeof NEIGHBOURHOOD_CHARACTER)[number];
 export type RelationshipOption = (typeof RELATIONSHIP_OPTIONS)[number];
 export type SocialStatus = (typeof SOCIAL_STATUSES)[number];
-export type FamilyStatus = (typeof FAMILY_STATUSES)[number];
+export type MaritalStatus = (typeof MARITAL_STATUSES)[number];
 export type ExpectedCompletionTime = (typeof EXPECTED_COMPLETION_TIMES)[number];
 
 export type PersonProfile = {
-  name: string;
+  name?: string;
   ageGroup: AgeGroup;
   profession: string;
   religion: Religion;
   annualIncome?: number;
   ethnicity?: string;
   socialStatus?: SocialStatus;
-  familyStatus?: FamilyStatus;
+  maritalStatus?: MaritalStatus;
   relationshipToOwner?: RelationshipOption;
 };
 
@@ -173,12 +181,15 @@ export type ProjectInput = {
   buildingUse: BuildingUse;
   constructionMethod: ConstructionMethod;
   ownLand: OwnLandOption;
+  landDocumentsHeld?: string;
+  landAssistanceOptions?: LandAssistanceOption[];
   sitePlanAvailable: boolean;
   landTitleAvailable: boolean;
   indentureAvailable: boolean;
   landTenure: LandTenure;
   plotSize: number;
   zoning: string;
+  environmentalZone: EnvironmentalZone;
   siteZoneType: SiteZoneType;
   environmentalSensitivity: EnvironmentalSensitivity;
   siteTopography: Topography;
