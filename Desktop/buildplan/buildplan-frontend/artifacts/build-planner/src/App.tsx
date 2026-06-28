@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import EstimateForm from "@/pages/estimate";
+import Admin from "@/pages/admin";
 import Results from "@/pages/results";
 
 const queryClient = new QueryClient();
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/estimate" component={EstimateForm} />
+      <Route path="/admin" component={Admin} />
       <Route path="/results/:id" component={Results} />
       <Route component={NotFound} />
     </Switch>

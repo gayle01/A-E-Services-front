@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { build, createServer } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
@@ -8,7 +8,7 @@ const rootDir = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.PORT ?? 5173);
 const basePath = process.env.BASE_PATH ?? "/";
 
-export default defineConfig({
+const sharedConfig = {
   base: basePath,
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -18,10 +18,6 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
   },
   root: rootDir,
-  build: {
-    outDir: path.resolve(rootDir, "dist/public"),
-    emptyOutDir: true,
-  },
   server: {
     port,
     strictPort: true,
@@ -36,4 +32,31 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
   },
-});
+  build: {
+    outDir: path.resolve(rootDir, "dist/public"),
+    emptyOutDir: true,
+  },
+};
+
+const mode = process.argv[2] ?? "dev";
+
+if (mode === "build") {
+  await build({
+    ...sharedConfig,
+    configFile: false,
+  });
+} else if (mode === "preview") {
+  const server = await createServer({
+    ...sharedConfig,
+    configFile: false,
+  });
+  await server.listen();
+  server.printUrls();
+} else {
+  const server = await createServer({
+    ...sharedConfig,
+    configFile: false,
+  });
+  await server.listen();
+  server.printUrls();
+}
