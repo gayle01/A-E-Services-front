@@ -1,0 +1,9 @@
+[build]
+  base = "Desktop/buildplan/buildplan-frontend/artifacts/build-planner"
+  command = "npm run build"
+  publish = "Desktop/buildplan/buildplan-frontend/artifacts/build-planner/dist/public"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
