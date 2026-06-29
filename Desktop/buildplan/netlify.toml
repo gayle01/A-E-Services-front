@@ -1,5 +1,5 @@
 [build]
-  base = "buildplan-frontend/artifacts/build-planner"
+  base = "Desktop/buildplan/buildplan-frontend/artifacts/build-planner"
   command = "npm run build"
   publish = "dist/public"
 
