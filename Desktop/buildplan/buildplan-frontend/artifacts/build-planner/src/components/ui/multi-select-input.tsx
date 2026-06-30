@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 
 interface MultiSelectInputProps {
   value: string;
@@ -48,6 +48,16 @@ export function MultiSelectInput({
     } else {
       setShowSuggestions(false);
     }
+  };
+
+  const toggleSuggestions = () => {
+    if (showSuggestions) {
+      setShowSuggestions(false);
+    } else {
+      setFilteredSuggestions(suggestions);
+      setShowSuggestions(true);
+    }
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -109,6 +119,13 @@ export function MultiSelectInput({
           placeholder={items.length === 0 ? placeholder : ""}
           className="flex-1 min-w-[120px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-1 h-7"
         />
+        <button
+          type="button"
+          onClick={toggleSuggestions}
+          className="hover:bg-accent rounded p-1 ml-1"
+        >
+          <ChevronDown className="h-4 w-4 opacity-70" />
+        </button>
       </div>
       
       {showSuggestions && filteredSuggestions.length > 0 && (

@@ -23,7 +23,6 @@ export const ARCHITECTURAL_SCOPES = ["Concept Design", "Full Design", "Design + 
 export const FOUNDATION_TYPES = ["Strip", "Raft", "Pile", "Combined"] as const;
 export const STRUCTURAL_SYSTEMS = ["Load-Bearing", "Reinforced Concrete Frame", "Steel Frame", "Hybrid"] as const;
 export const AGE_GROUPS = ["under-25", "25-34", "35-44", "45-54", "55-plus"] as const;
-export const BUILDING_USES = ["Single-family residence", "Multi-family residence", "Retail", "Office", "Mixed-use", "Industrial", "Institutional", "Hospitality", "Educational", "Healthcare", "Agricultural"] as const;
 export const CONSTRUCTION_METHODS = ["Traditional", "Modular", "Prefabricated", "Hybrid"] as const;
 export const PROJECT_TYPES = ["New Build", "Renovation", "Extension", "Conversion", "Adaptive Reuse", "Mixed Use"] as const;
 export const CONSTRUCTION_PHASES = ["Single Phase", "Double Phase", "Multi Phase", "Staged"] as const;
@@ -128,7 +127,6 @@ export const MATERIAL_NAMES = ["Cement", "Sand", "Stone", "Blocks", "Steel", "Ro
 export type AgeGroup = (typeof AGE_GROUPS)[number];
 export type Religion = (typeof RELIGIONS)[number];
 export type BuildingType = (typeof BUILDING_TYPES)[number];
-export type BuildingUse = (typeof BUILDING_USES)[number];
 export type ConstructionMethod = (typeof CONSTRUCTION_METHODS)[number];
 export type ProjectType = (typeof PROJECT_TYPES)[number];
 export type ConstructionPhase = (typeof CONSTRUCTION_PHASES)[number];
@@ -203,7 +201,6 @@ export type ProjectInput = {
   siteAccessibility: SiteAccessibility;
   finishLevel: FinishLevel;
   buildingShape: BuildingShape;
-  buildingUse: BuildingUse;
   constructionMethod: ConstructionMethod;
   ownLand: OwnLandOption;
   landDocumentsHeld?: string;
