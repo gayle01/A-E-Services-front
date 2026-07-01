@@ -13,14 +13,16 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 import {
   ARCHITECTURAL_SCOPES,
+  ARCHITECTURAL_STYLES,
   AGE_GROUPS,
   ACCESS_ROADS,
+  ACCESS_WAYS,
   BUILDING_SHAPES,
   BUILDING_STYLES,
   BUILDING_TYPES,
-  BUILDING_USES,
   CONSTRUCTION_METHODS,
   CONSTRUCTION_PHASES,
   DESIGN_STYLES,
@@ -33,6 +35,7 @@ import {
   LOCATION_OPTIONS,
   SOCIAL_STATUSES,
   NATURAL_FEATURES,
+  OPEN_AREA_CONCEPTS,
   OWN_LAND_OPTIONS,
   ORIENTATION_OPTIONS,
   PROFESSIONS,
@@ -40,17 +43,21 @@ import {
   PROJECT_TYPES,
   RELIGIONS,
   ROOF_COMPLEXITIES,
+  ROOF_STYLES,
   ROOF_TYPES,
   SITE_ACCESSIBILITY,
   SITE_ZONE_TYPES,
   SOIL_CONDITIONS,
   STRUCTURAL_SYSTEMS,
   TOPOGRAPHIES,
+  VIEWS,
   ZONING_OPTIONS,
   calculateStructuralComplexity,
   type ProjectInput,
   useCreateEstimate,
 } from "@/lib/mock-api";
+import { MultiSelectInput } from "@/components/ui/multi-select-input";
+import { CURRENCIES, LENGTH_UNITS, AREA_UNITS, formatCurrency, parseCurrency, formatNumberWithCommas } from "@/lib/i18n";
 import { Building2, Calculator, ChevronLeft, ChevronRight, ClipboardList, Home, Layers3, MapPin, ShieldCheck, Users } from "lucide-react";
 
 const stepConfig = [
@@ -58,9 +65,8 @@ const stepConfig = [
   { title: "Land Information", icon: MapPin },
   { title: "Site Features", icon: Layers3 },
   { title: "Project Information", icon: ClipboardList },
-  { title: "Parameters", icon: Home },
-  { title: "Professional Services", icon: Building2 },
-  { title: "Referral & Finish", icon: ShieldCheck },
+  { title: "Developed Brief", icon: Home },
+  { title: "Review & Submit", icon: ClipboardList },
 ];
 
 const formatAgeGroup = (ageGroup: string) => {
@@ -73,35 +79,46 @@ const estimateSchema = z.object({
   userId: z.number().optional(),
   projectName: z.string().min(2, "Project name is required."),
   location: z.string().min(1, "Location is required."),
-  buildingType: z.enum(BUILDING_TYPES),
+  landmark: z.string().optional(),
+  buildingType: z.string(),
   projectType: z.enum(PROJECT_TYPES),
   constructionPhasing: z.enum(CONSTRUCTION_PHASES),
   expectedCompletionTime: z.enum(EXPECTED_COMPLETION_TIMES),
   projectComplexity: z.enum(PROJECT_COMPLEXITIES),
   designStyle: z.enum(DESIGN_STYLES),
+  openAreaConcept: z.enum(OPEN_AREA_CONCEPTS).optional(),
+  architecturalStyle: z.enum(ARCHITECTURAL_STYLES).optional(),
   owner: z.object({
     name: z.string().optional(),
     profession: z.string().min(2, "Owner profession is required."),
     annualIncome: z.coerce.number().min(0, "Owner annual income is required."),
-    ageGroup: z.enum(AGE_GROUPS),
+    currency: z.string().optional(),
+    ageGroup: z.array(z.enum(AGE_GROUPS)).min(1, "Please select at least one age group"),
     religion: z.enum(RELIGIONS),
     ethnicity: z.string().optional(),
-    socialStatus: z.enum(SOCIAL_STATUSES).optional(),
+    socialStatus: z.string().optional(),
     maritalStatus: z.enum(MARITAL_STATUSES).optional(),
   }),
   primaryUser: z.object({
     name: z.string().optional(),
-    profession: z.string().min(2, "Primary user profession is required."),
-    annualIncome: z.coerce.number().min(0, "Primary user annual income is required."),
-    ageGroup: z.enum(AGE_GROUPS),
-    religion: z.enum(RELIGIONS),
+    profession: z.string().optional(),
+    annualIncome: z.coerce.number().optional(),
+    currency: z.string().optional(),
+    ageGroup: z.array(z.enum(AGE_GROUPS)).optional(),
+    religion: z.enum(RELIGIONS).optional(),
     ethnicity: z.string().optional(),
-    socialStatus: z.enum(SOCIAL_STATUSES).optional(),
+    socialStatus: z.string().optional(),
     maritalStatus: z.enum(MARITAL_STATUSES).optional(),
+    isSameAsOwner: z.boolean().optional(),
   }),
   floorArea: z.coerce.number().min(10, "Floor area must be at least 10 m2."),
   visibleFeatures: z.string().optional(),
-  spacesRequired: z.string().optional(),
+  spacesRequired: z.array(z.object({
+    name: z.string(),
+    dimensions: z.string().optional(),
+    area: z.coerce.number().optional(),
+    notes: z.string().optional(),
+  })).optional(),
   measurement: z.string().optional(),
   plotLength: z.coerce.number().min(0, "Plot length must be zero or more.").optional(),
   plotBreadth: z.coerce.number().min(0, "Plot breadth must be zero or more.").optional(),
@@ -113,31 +130,42 @@ const estimateSchema = z.object({
   siteAccessibility: z.enum(SITE_ACCESSIBILITY),
   finishLevel: z.enum(FINISH_LEVELS),
   buildingShape: z.enum(BUILDING_SHAPES),
-  buildingUse: z.enum(BUILDING_USES),
   constructionMethod: z.enum(CONSTRUCTION_METHODS),
   ownLand: z.enum(OWN_LAND_OPTIONS),
   landDocumentsHeld: z.string().optional(),
   landAssistanceBuyLand: z.boolean(),
   landAssistanceRegularizeDocuments: z.boolean(),
   landAssistanceRedemarcateLand: z.boolean(),
+  landAssistanceSiteSelection: z.boolean(),
   sitePlanAvailable: z.boolean(),
   landTitleAvailable: z.boolean(),
   indentureAvailable: z.boolean(),
   landTenure: z.enum(LAND_TENURES),
+  yearsLeftOnLease: z.coerce.number().min(0).optional(),
   plotSize: z.coerce.number().min(0, "Plot size must be zero or more."),
+  plotAreaUnit: z.string().optional(),
+  plotLengthUnit: z.string().optional(),
+  plotBreadthUnit: z.string().optional(),
+  isIrregularSite: z.boolean().optional(),
+  sitePlanImage: z.string().optional(),
   zoning: z.enum(ZONING_OPTIONS),
   environmentalZone: z.enum(ENVIRONMENTAL_ZONES),
-  siteZoneType: z.enum(SITE_ZONE_TYPES),
+  siteZoneType: z.string().optional(),
   siteTopography: z.enum(TOPOGRAPHIES),
   soilSurvey: z.boolean(),
+  soilSurveyFile: z.string().optional(),
   topographicSurvey: z.boolean(),
+  topographicSurveyFile: z.string().optional(),
   specialViews: z.boolean(),
   viewLocation: z.string().optional(),
   naturalFeatures: z.enum(NATURAL_FEATURES),
   accessRoads: z.enum(ACCESS_ROADS),
-  orientation: z.enum(ORIENTATION_OPTIONS),
-  buildingStyle: z.enum(BUILDING_STYLES),
-  existingUtilities: z.enum(["Available", "Partial", "Not Available"] as const),
+  accessWays: z.string().optional(),
+  orientation: z.string().optional(),
+  buildingStyle: z.string().optional(),
+  neighbourhoodCharacter: z.string().optional(),
+  existingUtilities: z.string().optional(),
+  roofStyle: z.enum(ROOF_STYLES).optional(),
   basement: z.boolean(),
   largeOpenSpaces: z.boolean(),
   cantileversOrBalconies: z.boolean(),
@@ -145,6 +173,7 @@ const estimateSchema = z.object({
   architecturalScope: z.enum(ARCHITECTURAL_SCOPES),
   foundationType: z.enum(FOUNDATION_TYPES),
   structuralSystem: z.enum(STRUCTURAL_SYSTEMS),
+  views: z.enum(VIEWS),
   architecturalServices: z.boolean(),
   structuralEngineeringServices: z.boolean(),
   mepEngineering: z.boolean(),
@@ -155,6 +184,42 @@ const estimateSchema = z.object({
   serviceReferral: z.boolean(),
   referralPercentage: z.coerce.number().min(0, "Referral percentage must be zero or more."),
   complimentaryServices: z.boolean(),
+}).superRefine((values, ctx) => {
+  if (values.primaryUser.isSameAsOwner) {
+    return;
+  }
+
+  if (!values.primaryUser.profession || values.primaryUser.profession.trim().length < 2) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["primaryUser", "profession"],
+      message: "Primary user profession is required.",
+    });
+  }
+
+  if (values.primaryUser.annualIncome === undefined || Number.isNaN(values.primaryUser.annualIncome)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["primaryUser", "annualIncome"],
+      message: "Primary user annual income is required.",
+    });
+  }
+
+  if (!values.primaryUser.ageGroup || values.primaryUser.ageGroup.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["primaryUser", "ageGroup"],
+      message: "Please select at least one age group.",
+    });
+  }
+
+  if (!values.primaryUser.religion) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["primaryUser", "religion"],
+      message: "Primary user religion is required.",
+    });
+  }
 });
 
 type FormValues = z.infer<typeof estimateSchema>;
@@ -232,7 +297,8 @@ export default function EstimateForm() {
         name: "",
         profession: "",
         annualIncome: 0,
-        ageGroup: "35-44",
+        currency: "USD",
+        ageGroup: ["35-44"],
         religion: "Christianity",
         ethnicity: "",
         socialStatus: "Employed",
@@ -242,15 +308,17 @@ export default function EstimateForm() {
         name: "",
         profession: "",
         annualIncome: 0,
-        ageGroup: "35-44",
+        currency: "USD",
+        ageGroup: ["35-44"],
         religion: "Christianity",
         ethnicity: "",
         socialStatus: "Employed",
         maritalStatus: "Single",
+        isSameAsOwner: false,
       },
       floorArea: 120,
       visibleFeatures: "",
-      spacesRequired: "",
+      spacesRequired: [],
       measurement: "",
       plotLength: 20,
       plotBreadth: 10,
@@ -262,31 +330,43 @@ export default function EstimateForm() {
       siteAccessibility: "Urban",
       finishLevel: "Standard",
       buildingShape: "Rectangular",
-      buildingUse: "Single-family residence",
-      constructionMethod: "Conventional",
+      constructionMethod: "Traditional",
       ownLand: "Yes",
       landDocumentsHeld: "",
       landAssistanceBuyLand: false,
       landAssistanceRegularizeDocuments: false,
       landAssistanceRedemarcateLand: false,
+      landAssistanceSiteSelection: false,
       sitePlanAvailable: false,
       landTitleAvailable: false,
       indentureAvailable: false,
       landTenure: "Freehold",
+      yearsLeftOnLease: 0,
       plotSize: 0,
+      plotAreaUnit: "m²",
+      plotLengthUnit: "m",
+      plotBreadthUnit: "m",
+      isIrregularSite: false,
+      sitePlanImage: "",
       zoning: "Residential",
       environmentalZone: "Environmentally sensitive",
-      siteZoneType: "Residential",
+      siteZoneType: "",
       siteTopography: "Flat",
       soilSurvey: false,
+      soilSurveyFile: "",
       topographicSurvey: false,
+      topographicSurveyFile: "",
       specialViews: false,
+      views: "Open",
       viewLocation: "",
       naturalFeatures: "None",
       accessRoads: "Good",
-      orientation: "North",
-      buildingStyle: "Modern",
-      existingUtilities: "Available",
+      accessWays: "",
+      orientation: "",
+      buildingStyle: "",
+      neighbourhoodCharacter: "",
+      existingUtilities: "",
+      roofStyle: "Flat",
       basement: false,
       largeOpenSpaces: false,
       cantileversOrBalconies: false,
@@ -334,28 +414,12 @@ export default function EstimateForm() {
 
   const nextStep = async () => {
     const stepFields: Record<number, Array<keyof FormValues | string>> = {
-      0: ["owner.name", "owner.profession", "owner.ageGroup", "owner.annualIncome", "owner.religion", "owner.ethnicity", "owner.socialStatus", "owner.maritalStatus", "primaryUser.name", "primaryUser.profession", "primaryUser.ageGroup", "primaryUser.annualIncome", "primaryUser.religion", "primaryUser.ethnicity", "primaryUser.socialStatus", "primaryUser.maritalStatus"],
+      0: ["owner.name", "owner.profession", "owner.ageGroup", "owner.annualIncome", "owner.religion", "owner.ethnicity", "owner.socialStatus", "owner.maritalStatus"],
       1: ["ownLand", "landDocumentsHeld", "landAssistanceBuyLand", "landAssistanceRegularizeDocuments", "landAssistanceRedemarcateLand", "landTenure", "sitePlanAvailable", "landTitleAvailable", "indentureAvailable", "plotSize", "zoning", "environmentalZone"],
-      2: ["siteTopography", "siteAccessibility", "soilSurvey", "topographicSurvey", "specialViews", "visibleFeatures", "viewLocation", "accessRoads", "orientation", "buildingStyle", "naturalFeatures", "existingUtilities", "basement", "largeOpenSpaces", "cantileversOrBalconies", "roofComplexity"],
-      3: ["projectName", "location", "buildingType", "projectType", "buildingUse", "constructionMethod", "projectComplexity", "designStyle", "spacesRequired", "measurement", "floorArea", "plotLength", "plotBreadth", "numberOfFloors", "numberOfBedrooms", "numberOfBathrooms", "roofType", "buildingShape"],
-      4: ["constructionPhasing", "soilCondition", "siteAccessibility", "floorArea", "numberOfFloors", "numberOfBedrooms", "numberOfBathrooms", "roofType", "buildingShape"],
-      5: [
-        "architecturalServices",
-        "structuralEngineeringServices",
-        "mepEngineering",
-        "interiorDesign",
-        "customElements",
-        "postContractServices",
-        "architecturalScope",
-        "foundationType",
-        "structuralSystem",
-      ],
-      6: [
-        "architectReferral",
-        "serviceReferral",
-        "referralPercentage",
-        "complimentaryServices",
-      ],
+      2: ["siteTopography", "siteAccessibility", "soilSurvey", "topographicSurvey", "specialViews", "views", "visibleFeatures", "viewLocation", "accessRoads", "orientation", "buildingStyle", "naturalFeatures", "existingUtilities", "basement", "largeOpenSpaces", "cantileversOrBalconies", "roofComplexity"],
+      3: ["projectName", "location", "buildingType", "projectType", "constructionMethod", "projectComplexity", "designStyle", "spacesRequired", "measurement", "floorArea", "plotLength", "plotBreadth", "numberOfFloors", "numberOfBedrooms", "numberOfBathrooms", "roofType", "buildingShape"],
+      4: ["constructionPhasing", "soilCondition", "architecturalScope", "foundationType", "structuralSystem"],
+      5: ["finishLevel", "architecturalServices", "structuralEngineeringServices", "mepEngineering", "interiorDesign", "customElements", "postContractServices"],
     };
 
     const valid = await form.trigger(stepFields[currentStep] as never[]);
@@ -370,12 +434,181 @@ export default function EstimateForm() {
     window.scrollTo(0, 0);
   };
 
+  useEffect(() => {
+    if (!watchedValues.primaryUser.isSameAsOwner) {
+      return;
+    }
+
+    const owner = watchedValues.owner;
+    const currentPrimaryUser = form.getValues("primaryUser");
+    const nextPrimaryUser = {
+      ...currentPrimaryUser,
+      ...owner,
+      isSameAsOwner: true,
+    };
+
+    if (JSON.stringify(currentPrimaryUser) !== JSON.stringify(nextPrimaryUser)) {
+      form.setValue("primaryUser", nextPrimaryUser, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+  }, [form, watchedValues.owner, watchedValues.primaryUser]);
+
+  const flattenErrorPaths = (value: unknown, prefix = ""): string[] => {
+    if (!value || typeof value !== "object") {
+      return [];
+    }
+
+    return Object.entries(value as Record<string, unknown>).flatMap(([key, nested]) => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      if (
+        nested &&
+        typeof nested === "object" &&
+        !Array.isArray(nested) &&
+        !("message" in (nested as Record<string, unknown>))
+      ) {
+        return flattenErrorPaths(nested, path);
+      }
+
+      return path;
+    });
+  };
+
+  const onInvalid = (errors: unknown) => {
+    const fields = flattenErrorPaths(errors);
+    toast({
+      title: "Some required fields are still missing",
+      description: fields.length
+        ? `Please check: ${fields.slice(0, 4).join(", ")}${fields.length > 4 ? "..." : ""}`
+        : "Please review the earlier steps and fill any highlighted fields before submitting.",
+    });
+  };
+
   const onSubmit = (values: FormValues) => {
+    // Convert ageGroup arrays to single values for the API
+    const ownerAgeGroup = values.owner.ageGroup[0] || "35-44";
+    const primaryUserAgeGroup = values.primaryUser.ageGroup[0] || "35-44";
+    
+    const processedValues = {
+      userId: values.userId,
+      projectName: values.projectName,
+      location: values.location,
+      landmark: values.landmark,
+      buildingType: values.buildingType,
+      projectType: values.projectType,
+      constructionPhasing: values.constructionPhasing,
+      expectedCompletionTime: values.expectedCompletionTime,
+      projectComplexity: values.projectComplexity,
+      designStyle: values.designStyle,
+      openAreaConcept: values.openAreaConcept,
+      architecturalStyle: values.architecturalStyle,
+      owner: {
+        name: values.owner.name,
+        profession: values.owner.profession,
+        annualIncome: values.owner.annualIncome,
+        currency: values.owner.currency,
+        ageGroup: ownerAgeGroup,
+        religion: values.owner.religion,
+        ethnicity: values.owner.ethnicity,
+        socialStatus: values.owner.socialStatus,
+        maritalStatus: values.owner.maritalStatus,
+      },
+      primaryUser: {
+        name: values.primaryUser.isSameAsOwner ? values.owner.name : values.primaryUser.name,
+        profession: values.primaryUser.isSameAsOwner ? values.owner.profession : values.primaryUser.profession ?? values.owner.profession ?? "",
+        annualIncome: values.primaryUser.isSameAsOwner ? values.owner.annualIncome : values.primaryUser.annualIncome ?? values.owner.annualIncome ?? 0,
+        currency: values.primaryUser.isSameAsOwner ? values.owner.currency : values.primaryUser.currency,
+        ageGroup: values.primaryUser.isSameAsOwner ? ownerAgeGroup : primaryUserAgeGroup,
+        religion: values.primaryUser.isSameAsOwner ? values.owner.religion : values.primaryUser.religion,
+        ethnicity: values.primaryUser.isSameAsOwner ? values.owner.ethnicity : values.primaryUser.ethnicity,
+        socialStatus: values.primaryUser.isSameAsOwner ? values.owner.socialStatus : values.primaryUser.socialStatus,
+        maritalStatus: values.primaryUser.isSameAsOwner ? values.owner.maritalStatus : values.primaryUser.maritalStatus,
+        isSameAsOwner: values.primaryUser.isSameAsOwner,
+      },
+      floorArea: values.floorArea,
+      visibleFeatures: values.visibleFeatures,
+      spacesRequired: values.spacesRequired?.map(space => ({
+        name: space.name,
+        dimensions: space.dimensions || "",
+        area: space.area || 0,
+        notes: space.notes || "",
+      })) as any,
+      measurement: values.measurement,
+      plotLength: values.plotLength,
+      plotBreadth: values.plotBreadth,
+      numberOfFloors: values.numberOfFloors,
+      numberOfBedrooms: values.numberOfBedrooms,
+      numberOfBathrooms: values.numberOfBathrooms,
+      roofType: values.roofType,
+      soilCondition: values.soilCondition,
+      siteAccessibility: values.siteAccessibility,
+      finishLevel: values.finishLevel,
+      buildingShape: values.buildingShape,
+      constructionMethod: values.constructionMethod,
+      ownLand: values.ownLand,
+      landDocumentsHeld: values.landDocumentsHeld,
+      landAssistanceBuyLand: values.landAssistanceBuyLand,
+      landAssistanceRegularizeDocuments: values.landAssistanceRegularizeDocuments,
+      landAssistanceRedemarcateLand: values.landAssistanceRedemarcateLand,
+      landAssistanceSiteSelection: values.landAssistanceSiteSelection,
+      sitePlanAvailable: values.sitePlanAvailable,
+      landTitleAvailable: values.landTitleAvailable,
+      indentureAvailable: values.indentureAvailable,
+      landTenure: values.landTenure,
+      yearsLeftOnLease: values.yearsLeftOnLease,
+      plotSize: values.plotSize,
+      plotAreaUnit: values.plotAreaUnit,
+      plotLengthUnit: values.plotLengthUnit,
+      plotBreadthUnit: values.plotBreadthUnit,
+      isIrregularSite: values.isIrregularSite,
+      sitePlanImage: values.sitePlanImage,
+      zoning: values.zoning,
+      environmentalZone: values.environmentalZone,
+      siteZoneType: values.siteZoneType,
+      siteTopography: values.siteTopography,
+      soilSurvey: values.soilSurvey,
+      soilSurveyFile: values.soilSurveyFile,
+      topographicSurvey: values.topographicSurvey,
+      topographicSurveyFile: values.topographicSurveyFile,
+      specialViews: values.specialViews,
+      viewLocation: values.viewLocation,
+      naturalFeatures: values.naturalFeatures,
+      accessRoads: values.accessRoads,
+      accessWays: values.accessWays,
+      orientation: values.orientation,
+      buildingStyle: values.buildingStyle,
+      neighbourhoodCharacter: values.neighbourhoodCharacter,
+      existingUtilities: values.existingUtilities,
+      roofStyle: values.roofStyle,
+      basement: values.basement,
+      largeOpenSpaces: values.largeOpenSpaces,
+      cantileversOrBalconies: values.cantileversOrBalconies,
+      roofComplexity: values.roofComplexity,
+      architecturalScope: values.architecturalScope,
+      foundationType: values.foundationType,
+      structuralSystem: values.structuralSystem,
+      views: values.views,
+      architecturalServices: values.architecturalServices,
+      structuralEngineeringServices: values.structuralEngineeringServices,
+      mepEngineering: values.mepEngineering,
+      interiorDesign: values.interiorDesign,
+      customElements: values.customElements,
+      postContractServices: values.postContractServices,
+      architectReferral: values.architectReferral,
+      serviceReferral: values.serviceReferral,
+      referralPercentage: values.referralPercentage,
+      complimentaryServices: values.complimentaryServices,
+    } as ProjectInput;
+    
     createEstimate(
-      { data: values as ProjectInput },
+      { data: processedValues },
       {
         onSuccess: (record) => {
           setLocation(`/results/${record.id}`);
+        },
+        onError: (error) => {
+          console.error("Error submitting form:", error);
         },
       },
     );
@@ -431,7 +664,7 @@ export default function EstimateForm() {
           <Card className="shadow-sm">
             <CardContent className="p-6 md:p-10">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-8">
                 {currentStep === 0 && (
                   <div className="grid gap-6 xl:grid-cols-2">
                     <Card className="border">
@@ -462,7 +695,12 @@ export default function EstimateForm() {
                             <FormItem>
                               <FormLabel>Profession</FormLabel>
                               <FormControl>
-                                <Input list="professions" placeholder="Start typing or add multiple professions with commas" {...field} />
+                                <MultiSelectInput
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  suggestions={[...PROFESSIONS] as string[]}
+                                  placeholder="Start typing or add multiple professions with commas"
+                                />
                               </FormControl>
                               <p className="text-xs text-muted-foreground">Choose from the list or type a custom profession. Separate multiple entries with commas.</p>
                               <FormMessage />
@@ -475,33 +713,79 @@ export default function EstimateForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Age Group</FormLabel>
+                              <div className="grid grid-cols-2 gap-3">
+                                {AGE_GROUPS.map((ageGroup) => (
+                                  <div key={ageGroup} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`owner-${ageGroup}`}
+                                      checked={field.value.includes(ageGroup)}
+                                      onCheckedChange={(checked) => {
+                                        const currentValue = field.value || [];
+                                        if (checked) {
+                                          field.onChange([...currentValue, ageGroup]);
+                                        } else {
+                                          field.onChange(currentValue.filter((v) => v !== ageGroup));
+                                        }
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor={`owner-${ageGroup}`}
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                      {formatAgeGroup(ageGroup)}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="owner.annualIncome"
+                          render={({ field }) => {
+                            const currency = form.watch("owner.currency") || "USD";
+                            return (
+                              <FormItem>
+                                <FormLabel>Annual Income</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="text"
+                                    placeholder="Owner annual income"
+                                    value={formatNumberWithCommas(field.value)}
+                                    onChange={(e) => {
+                                      const parsed = parseCurrency(e.target.value, currency as any);
+                                      if (!isNaN(parsed)) field.onChange(parsed);
+                                    }}
+                                  />
+                                </FormControl>
+                                <p className="text-xs text-muted-foreground">Commas will be added automatically as you type.</p>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="owner.currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select age group" />
+                                    <SelectValue placeholder="Select currency" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {AGE_GROUPS.map((ageGroup) => (
-                                    <SelectItem key={ageGroup} value={ageGroup}>
-                                      {formatAgeGroup(ageGroup)}
+                                  {CURRENCIES.map((currency) => (
+                                    <SelectItem key={currency.code} value={currency.code}>
+                                      {currency.symbol} - {currency.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                        <FormField
-                          control={form.control}
-                          name="owner.annualIncome"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Annual Income</FormLabel>
-                              <FormControl>
-                                <Input type="number" min={0} placeholder="Owner annual income" {...field} />
-                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -549,20 +833,15 @@ export default function EstimateForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Social Status</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select social status" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {SOCIAL_STATUSES.map((status) => (
-                                    <SelectItem key={status} value={status}>
-                                      {status}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <FormControl>
+                                <MultiSelectInput
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  suggestions={[...SOCIAL_STATUSES] as string[]}
+                                  placeholder="Select multiple social statuses with commas"
+                                />
+                              </FormControl>
+                              <p className="text-xs text-muted-foreground">Select multiple options by separating with commas.</p>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -604,6 +883,45 @@ export default function EstimateForm() {
                       <CardContent className="space-y-5">
                         <FormField
                           control={form.control}
+                          name="primaryUser.isSameAsOwner"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-xl border p-4">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    if (checked) {
+                                      const ownerData = form.getValues("owner");
+                                      form.setValue("primaryUser", { ...ownerData, isSameAsOwner: true });
+                                    } else {
+                                      form.setValue("primaryUser", {
+                                        name: "",
+                                        profession: "",
+                                        annualIncome: 0,
+                                        currency: "USD",
+                                        ageGroup: ["35-44"],
+                                        religion: "Christianity",
+                                        ethnicity: "",
+                                        socialStatus: "Employed",
+                                        maritalStatus: "Single",
+                                        isSameAsOwner: false,
+                                      });
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Same as Owner</FormLabel>
+                                <p className="text-xs text-muted-foreground">Check this if the primary user is the same person as the owner</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        {!form.watch("primaryUser.isSameAsOwner") && (
+                        <>
+                        <FormField
+                          control={form.control}
                           name="primaryUser.name"
                           render={({ field }) => (
                             <FormItem>
@@ -622,7 +940,12 @@ export default function EstimateForm() {
                             <FormItem>
                               <FormLabel>Profession</FormLabel>
                               <FormControl>
-                                <Input list="professions" placeholder="Start typing or add multiple professions with commas" {...field} />
+                                <MultiSelectInput
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  suggestions={[...PROFESSIONS] as string[]}
+                                  placeholder="Start typing or add multiple professions with commas"
+                                />
                               </FormControl>
                               <p className="text-xs text-muted-foreground">Choose from the list or type a custom profession. Separate multiple entries with commas.</p>
                               <FormMessage />
@@ -635,20 +958,30 @@ export default function EstimateForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Age Group</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select age group" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {AGE_GROUPS.map((ageGroup) => (
-                                    <SelectItem key={ageGroup} value={ageGroup}>
+                              <div className="grid grid-cols-2 gap-3">
+                                {AGE_GROUPS.map((ageGroup) => (
+                                  <div key={ageGroup} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`primaryUser-${ageGroup}`}
+                                      checked={field.value.includes(ageGroup)}
+                                      onCheckedChange={(checked) => {
+                                        const currentValue = field.value || [];
+                                        if (checked) {
+                                          field.onChange([...currentValue, ageGroup]);
+                                        } else {
+                                          field.onChange(currentValue.filter((v) => v !== ageGroup));
+                                        }
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor={`primaryUser-${ageGroup}`}
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
                                       {formatAgeGroup(ageGroup)}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -656,12 +989,48 @@ export default function EstimateForm() {
                         <FormField
                           control={form.control}
                           name="primaryUser.annualIncome"
+                          render={({ field }) => {
+                            const currency = form.watch("primaryUser.currency") || "USD";
+                            return (
+                              <FormItem>
+                                <FormLabel>Annual Income</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="text"
+                                    placeholder="Primary user annual income"
+                                    value={formatNumberWithCommas(field.value)}
+                                    onChange={(e) => {
+                                      const parsed = parseCurrency(e.target.value, currency as any);
+                                      if (!isNaN(parsed)) field.onChange(parsed);
+                                    }}
+                                  />
+                                </FormControl>
+                                <p className="text-xs text-muted-foreground">Commas will be added automatically as you type.</p>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.currency"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Annual Income</FormLabel>
-                              <FormControl>
-                                <Input type="number" min={0} placeholder="Primary user annual income" {...field} />
-                              </FormControl>
+                              <FormLabel>Currency</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select currency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {CURRENCIES.map((currency) => (
+                                    <SelectItem key={currency.code} value={currency.code}>
+                                      {currency.symbol} - {currency.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -709,48 +1078,21 @@ export default function EstimateForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Social Status</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select social status" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {SOCIAL_STATUSES.map((status) => (
-                                    <SelectItem key={status} value={status}>
-                                      {status}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <FormControl>
+                                <MultiSelectInput
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  suggestions={[...SOCIAL_STATUSES] as string[]}
+                                  placeholder="Select multiple social statuses with commas"
+                                />
+                              </FormControl>
+                              <p className="text-xs text-muted-foreground">Select multiple options by separating with commas.</p>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name="primaryUser.maritalStatus"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Marital Status</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select marital status" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {MARITAL_STATUSES.map((status) => (
-                                    <SelectItem key={status} value={status}>
-                                      {status}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        </>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -764,6 +1106,44 @@ export default function EstimateForm() {
                     </h2>
 
                     <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Location</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select location" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {LOCATION_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="landmark"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Landmark (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. near Central Market, opposite Police Station" {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Name a landmark close to the land</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={form.control}
                         name="ownLand"
@@ -784,6 +1164,7 @@ export default function EstimateForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground">Select the land tenure type, such as Freehold or Leasehold.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -824,6 +1205,7 @@ export default function EstimateForm() {
                             <FormControl>
                               <Textarea placeholder="List any land documents you already have" {...field} />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">List any existing land documents, such as title deeds or survey reports.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -831,52 +1213,70 @@ export default function EstimateForm() {
                     )}
 
                     {showLandAssistance && (
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="landAssistanceBuyLand"
-                          render={({ field }) => (
-                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                              <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>Assistance to buy land</FormLabel>
-                                <p className="text-sm text-muted-foreground">Yes / No</p>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="landAssistanceRegularizeDocuments"
-                          render={({ field }) => (
-                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                              <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>Regularize documents</FormLabel>
-                                <p className="text-sm text-muted-foreground">Yes / No</p>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="landAssistanceRedemarcateLand"
-                          render={({ field }) => (
-                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                              <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>Re-demarcate land</FormLabel>
-                                <p className="text-sm text-muted-foreground">Yes / No</p>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
+                      <div>
+                        <h3 className="text-sm font-medium mb-3">Available Services</h3>
+                        <div className="grid md:grid-cols-4 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="landAssistanceBuyLand"
+                            render={({ field }) => (
+                              <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Assistance to buy land</FormLabel>
+                                  <p className="text-xs text-muted-foreground">Tick if available</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="landAssistanceRegularizeDocuments"
+                            render={({ field }) => (
+                              <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Regularize documents</FormLabel>
+                                  <p className="text-xs text-muted-foreground">Tick if available</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="landAssistanceRedemarcateLand"
+                            render={({ field }) => (
+                              <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Re-demarcate land</FormLabel>
+                                  <p className="text-xs text-muted-foreground">Tick if available</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="landAssistanceSiteSelection"
+                            render={({ field }) => (
+                              <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Site selection</FormLabel>
+                                  <p className="text-xs text-muted-foreground">Tick if available</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -891,7 +1291,7 @@ export default function EstimateForm() {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>Site plan available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                              <p className="text-xs text-muted-foreground">Tick if available</p>
                             </div>
                           </FormItem>
                         )}
@@ -906,7 +1306,7 @@ export default function EstimateForm() {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>Land title available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                              <p className="text-xs text-muted-foreground">Tick if available</p>
                             </div>
                           </FormItem>
                         )}
@@ -921,7 +1321,7 @@ export default function EstimateForm() {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>Indenture available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                              <p className="text-xs text-muted-foreground">Tick if available</p>
                             </div>
                           </FormItem>
                         )}
@@ -934,10 +1334,35 @@ export default function EstimateForm() {
                         name="plotLength"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Plot Length (m)</FormLabel>
-                            <FormControl>
-                              <Input type="number" min={0} placeholder="Enter plot length" {...field} />
-                            </FormControl>
+                            <FormLabel>Plot Length</FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input type="number" min={0} placeholder="Enter plot length" {...field} />
+                              </FormControl>
+                              <FormField
+                                control={form.control}
+                                name="plotLengthUnit"
+                                render={({ field }) => (
+                                  <FormItem className="w-24">
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {LENGTH_UNITS.map((unit) => (
+                                          <SelectItem key={unit.code} value={unit.code}>
+                                            {unit.code}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">Enter the longer dimension of the land parcel in the selected unit.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -947,19 +1372,120 @@ export default function EstimateForm() {
                         name="plotBreadth"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Plot Breadth (m)</FormLabel>
+                            <FormLabel>Plot Breadth</FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input type="number" min={0} placeholder="Enter plot breadth" {...field} />
+                              </FormControl>
+                              <FormField
+                                control={form.control}
+                                name="plotBreadthUnit"
+                                render={({ field }) => (
+                                  <FormItem className="w-24">
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {LENGTH_UNITS.map((unit) => (
+                                          <SelectItem key={unit.code} value={unit.code}>
+                                            {unit.code}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">Enter the shorter dimension of the land parcel in the selected unit.</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="yearsLeftOnLease"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Years Left on Lease</FormLabel>
                             <FormControl>
-                              <Input type="number" min={0} placeholder="Enter plot breadth" {...field} />
+                              <Input type="number" min={0} placeholder="Enter years remaining" {...field} />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Only applicable for leasehold properties</p>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                       <div className="space-y-2">
-                        <label className="text-sm font-medium leading-none">Plot Size</label>
-                        <Input value={Number(plotLength || 0) * Number(plotBreadth || 0)} readOnly />
+                        <label className="text-sm font-medium leading-none">Plot Area</label>
+                        <div className="flex gap-2">
+                          <Input value={Number(plotLength || 0) * Number(plotBreadth || 0)} readOnly />
+                          <FormField
+                            control={form.control}
+                            name="plotAreaUnit"
+                            render={({ field }) => (
+                              <FormItem className="w-24">
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {AREA_UNITS.map((unit) => (
+                                      <SelectItem key={unit.code} value={unit.code}>
+                                        {unit.code}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                         <p className="text-xs text-muted-foreground">Automatically calculated as length x breadth.</p>
                       </div>
+
+                    <FormField
+                      control={form.control}
+                      name="isIrregularSite"
+                      render={({ field }) => (
+                        <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                          <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Irregular Site Shape</FormLabel>
+                            <p className="text-xs text-muted-foreground">Check if site has irregular shape</p>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    {form.watch("isIrregularSite") && (
+                      <FormField
+                        control={form.control}
+                        name="sitePlanImage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Upload Site Plan</FormLabel>
+                            <FormControl>
+                              <Input type="file" accept="image/*" onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  field.onChange(file.name);
+                                }
+                              }} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Upload a photo or site plan for irregular sites. AI tool will calculate area automatically.</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                       <FormField
                         control={form.control}
                         name="zoning"
@@ -1048,11 +1574,11 @@ export default function EstimateForm() {
                         name="siteAccessibility"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Access Ways</FormLabel>
+                            <FormLabel>Site Accessibility</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select access ways" />
+                                  <SelectValue placeholder="Select site accessibility" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -1067,7 +1593,27 @@ export default function EstimateForm() {
                       />
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="accessWays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Access Ways</FormLabel>
+                          <FormControl>
+                            <MultiSelectInput
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              suggestions={[...ACCESS_WAYS] as string[]}
+                              placeholder="Select multiple access directions with commas"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Select multiple options (North, South, East, West, etc.) by separating with commas.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="soilSurvey"
@@ -1076,7 +1622,7 @@ export default function EstimateForm() {
                             <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>Have you done soil survey?</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                              <p className="text-xs text-muted-foreground">Yes / No</p>
                             </div>
                           </FormItem>
                         )}
@@ -1088,26 +1634,97 @@ export default function EstimateForm() {
                           <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
                             <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel>Have you done a topography survey?</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="specialViews"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Are there special views?</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
+                              <FormLabel>Have you done topographic survey?</FormLabel>
+                              <p className="text-xs text-muted-foreground">Yes / No</p>
                             </div>
                           </FormItem>
                         )}
                       />
                     </div>
+
+                    {form.watch("soilSurvey") && (
+                      <FormField
+                        control={form.control}
+                        name="soilSurveyFile"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Upload Soil Survey Report</FormLabel>
+                            <FormControl>
+                              <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  field.onChange(file.name);
+                                }
+                              }} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Upload your soil survey report (PDF, DOC, DOCX)</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {form.watch("topographicSurvey") && (
+                      <FormField
+                        control={form.control}
+                        name="topographicSurveyFile"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Upload Topographic Survey Report</FormLabel>
+                            <FormControl>
+                              <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  field.onChange(file.name);
+                                }
+                              }} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Upload your topographic survey report (PDF, DOC, DOCX)</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="specialViews"
+                      render={({ field }) => (
+                        <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Are there special views?</FormLabel>
+                            <p className="text-sm text-muted-foreground">Yes / No</p>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="views"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Primary View Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select view type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {VIEWS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">Choose the dominant view category for the site.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <FormField
                       control={form.control}
@@ -1116,6 +1733,7 @@ export default function EstimateForm() {
                         <FormItem>
                           <FormLabel>Location of the Views</FormLabel>
                           <FormControl><Input placeholder="e.g. north side, roadside, waterfront" {...field} /></FormControl>
+                          <p className="text-xs text-muted-foreground">Describe the position of the views, such as north-facing or road-facing.</p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1135,28 +1753,66 @@ export default function EstimateForm() {
                       )}
                     />
 
+                    <h3 className="text-lg font-semibold mt-6 mb-4">Neighbourhood Character</h3>
+
                     <div className="grid md:grid-cols-2 gap-6">
                       <FormField control={form.control} name="orientation" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Orientation of Building</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select orientation" /></SelectTrigger></FormControl>
-                            <SelectContent>{ORIENTATION_OPTIONS.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
-                          </Select>
+                          <FormLabel>Orientation of Buildings</FormLabel>
+                          <FormControl>
+                            <MultiSelectInput
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              suggestions={[...ORIENTATION_OPTIONS] as string[]}
+                              placeholder="Select multiple orientations with commas"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Select the direction(s) buildings face (e.g., North, South, East, West). This affects sunlight exposure and energy efficiency.</p>
                           <FormMessage />
                         </FormItem>
                       )} />
                       <FormField control={form.control} name="buildingStyle" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Building Style</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select building style" /></SelectTrigger></FormControl>
-                            <SelectContent>{BUILDING_STYLES.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
-                          </Select>
+                          <FormLabel>Building Styles</FormLabel>
+                          <FormControl>
+                            <MultiSelectInput
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              suggestions={[...BUILDING_STYLES] as string[]}
+                              placeholder="Select multiple building styles with commas"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Select the architectural style(s) preferred for the building (e.g., Modern, Traditional, Contemporary).</p>
                           <FormMessage />
                         </FormItem>
                       )} />
                     </div>
+
+                    <FormField
+                      control={form.control}
+                      name="neighbourhoodCharacter"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Neighbourhood Character</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select neighbourhood character" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {["Residential", "Commercial", "Mixed", "Heritage", "Suburban"].map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">Describe the surrounding area type to ensure design compatibility.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <FormField
@@ -1179,6 +1835,7 @@ export default function EstimateForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground">Select any natural features present on or near the site (e.g., trees, water bodies, hills).</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1189,20 +1846,15 @@ export default function EstimateForm() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Existing Utilities</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select utility status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {["Available", "Partial", "Not Available"].map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <FormControl>
+                              <MultiSelectInput
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                suggestions={["Water", "Electricity", "Gas", "Sewerage", "Internet", "Telephone"]}
+                                placeholder="Select available utilities with commas"
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Select which utility services are already available at the site.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1230,6 +1882,7 @@ export default function EstimateForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground">Select the complexity level of the roof design (Simple = flat/single slope, Complex = multiple levels/angles).</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1240,69 +1893,16 @@ export default function EstimateForm() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Site Zone Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select site zone" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {SITE_ZONE_TYPES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <FormControl>
+                            <MultiSelectInput
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              suggestions={[...SITE_ZONE_TYPES] as string[]}
+                              placeholder="Select multiple site zone types with commas"
+                            />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Select the zoning classification(s) for the site (e.g., Residential, Commercial, Industrial).</p>
                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="basement"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Basement</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include basement</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="largeOpenSpaces"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Large Open Spaces</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include large open spaces</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="cantileversOrBalconies"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Cantilevers or Balconies</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include cantilevers or balconies</p>
-                            </div>
                           </FormItem>
                         )}
                       />
@@ -1326,30 +1926,7 @@ export default function EstimateForm() {
                             <FormControl>
                               <Input placeholder="e.g. Osei Family Residence" {...field} />
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="location"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Location</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select location" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {LOCATION_OPTIONS.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <p className="text-xs text-muted-foreground">Give the project a name that helps you identify it later.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1363,14 +1940,14 @@ export default function EstimateForm() {
                         <FormItem className="space-y-3">
                           <FormLabel>Building Type</FormLabel>
                           <FormControl>
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
-                              {BUILDING_TYPES.map((type) => (
-                                <StepButton key={type} selected={field.value === type} onSelect={() => field.onChange(type)}>
-                                  <div className="font-semibold">{type}</div>
-                                </StepButton>
-                              ))}
-                            </RadioGroup>
+                            <MultiSelectInput
+                              value={field.value}
+                              onChange={field.onChange}
+                              suggestions={[...BUILDING_TYPES] as string[]}
+                              placeholder="Select multiple building types with commas"
+                            />
                           </FormControl>
+                          <p className="text-xs text-muted-foreground">Select one or more building types to match the intended use of the project.</p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1397,6 +1974,7 @@ export default function EstimateForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground">Select the main project type, for example New Build or Renovation.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1404,30 +1982,6 @@ export default function EstimateForm() {
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="buildingUse"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Building Use</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select building use" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {BUILDING_USES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                       <FormField
                         control={form.control}
                         name="constructionMethod"
@@ -1448,6 +2002,7 @@ export default function EstimateForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground">Select how the building will be constructed, such as conventional or prefabricated.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1484,7 +2039,7 @@ export default function EstimateForm() {
                         name="expectedCompletionTime"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Expected Completion Time</FormLabel>
+                            <FormLabel>Desired Completion Time</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
@@ -1499,6 +2054,7 @@ export default function EstimateForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground">Choose the desired project completion timeline.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1526,6 +2082,7 @@ export default function EstimateForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground">Choose the overall complexity level that best describes the project.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1533,15 +2090,85 @@ export default function EstimateForm() {
                       <FormField
                         control={form.control}
                         name="spacesRequired"
-                        render={({ field }) => (
+                        render={({ field }) => {
+                          const spaces = Array.isArray(field.value) ? field.value : [];
+                          return (
                           <FormItem>
                             <FormLabel>Spaces Required</FormLabel>
-                            <FormControl>
-                              <Textarea placeholder="List the spaces required for the project" {...field} />
-                            </FormControl>
+                            <div className="space-y-4">
+                              {spaces.map((space, index) => (
+                                <div key={index} className="border rounded-lg p-4 space-y-3">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="font-medium">Space {index + 1}</h4>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        field.onChange(spaces.filter((_, i) => i !== index));
+                                      }}
+                                      className="text-destructive text-sm hover:underline"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                  <div className="grid md:grid-cols-2 gap-3">
+                                    <Input
+                                      placeholder="Space name (e.g., Living Room)"
+                                      value={space.name}
+                                      onChange={(e) => {
+                                        const newSpaces = [...spaces];
+                                        newSpaces[index] = { ...space, name: e.target.value };
+                                        field.onChange(newSpaces);
+                                      }}
+                                    />
+                                    <Input
+                                      placeholder="Dimensions (e.g., 5m x 4m)"
+                                      value={space.dimensions || ""}
+                                      onChange={(e) => {
+                                        const newSpaces = [...spaces];
+                                        newSpaces[index] = { ...space, dimensions: e.target.value };
+                                        field.onChange(newSpaces);
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="grid md:grid-cols-2 gap-3">
+                                    <Input
+                                      type="number"
+                                      placeholder="Area (m²)"
+                                      value={space.area || ""}
+                                      onChange={(e) => {
+                                        const newSpaces = [...spaces];
+                                        newSpaces[index] = { ...space, area: parseFloat(e.target.value) || 0 };
+                                        field.onChange(newSpaces);
+                                      }}
+                                    />
+                                    <Input
+                                      placeholder="Notes (optional)"
+                                      value={space.notes || ""}
+                                      onChange={(e) => {
+                                        const newSpaces = [...spaces];
+                                        newSpaces[index] = { ...space, notes: e.target.value };
+                                        field.onChange(newSpaces);
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSpaces = [...spaces, { name: "", dimensions: "", area: 0, notes: "" }];
+                                  field.onChange(newSpaces);
+                                }}
+                                className="w-full py-2 px-4 border-2 border-dashed rounded-lg text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                              >
+                                + Add Space
+                              </button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Add detailed information for each space you need in the building</p>
                             <FormMessage />
                           </FormItem>
-                        )}
+                          );
+                        }}
                       />
                     </div>
 
@@ -1555,6 +2182,7 @@ export default function EstimateForm() {
                             <FormControl>
                               <Input placeholder="e.g. 120 m2" {...field} />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Enter any existing summary measurement you have for this project.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1567,14 +2195,46 @@ export default function EstimateForm() {
                       name="designStyle"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Design Style</FormLabel>
-                          <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
-                            {DESIGN_STYLES.map((style) => (
-                              <StepButton key={style} selected={field.value === style} onSelect={() => field.onChange(style)}>
-                                {style}
-                              </StepButton>
-                            ))}
-                          </RadioGroup>
+                          <FormLabel>Open Areas Concept</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select open areas concept" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {DESIGN_STYLES.map((style) => (
+                                <SelectItem key={style} value={style}>
+                                  {style}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="architecturalStyle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Architectural Styles</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select architectural style" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {ARCHITECTURAL_STYLES.map((style) => (
+                                <SelectItem key={style} value={style}>
+                                  {style}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1587,7 +2247,7 @@ export default function EstimateForm() {
                     <div className="space-y-6">
                       <h2 className="text-2xl font-bold flex items-center gap-2">
                         <Home className="h-5 w-5 text-primary" />
-                        Parameters
+                        Developed Brief
                       </h2>
                       <div className="grid md:grid-cols-2 gap-6">
                         <FormField
@@ -1667,6 +2327,56 @@ export default function EstimateForm() {
                       />
                     </div>
 
+                    <h3 className="text-lg font-semibold mt-6 mb-4">Project Features</h3>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="basement"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Basement</FormLabel>
+                              <p className="text-xs text-muted-foreground">Include basement</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="largeOpenSpaces"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Large Open Spaces</FormLabel>
+                              <p className="text-xs text-muted-foreground">Include large open spaces</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="cantileversOrBalconies"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Cantilevers or Balconies</FormLabel>
+                              <p className="text-xs text-muted-foreground">Include cantilevers or balconies</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
@@ -1716,6 +2426,33 @@ export default function EstimateForm() {
                               ))}
                             </SelectContent>
                           </Select>
+                          <p className="text-xs text-muted-foreground">Choose the roof type that best fits the building design.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="roofStyle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Roof Style</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select roof style" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {ROOF_STYLES.map((style) => (
+                                <SelectItem key={style} value={style}>
+                                  {style}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">Select the visual roof style for the project.</p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1736,12 +2473,393 @@ export default function EstimateForm() {
                               ))}
                             </RadioGroup>
                           </FormControl>
+                          <p className="text-xs text-muted-foreground">Choose the main building footprint shape for the design.</p>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="finishLevel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Finish Level</FormLabel>
+                          <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
+                            {FINISH_LEVELS.map((level) => (
+                              <StepButton key={level} selected={field.value === level} onSelect={() => field.onChange(level)}>
+                                {level}
+                              </StepButton>
+                            ))}
+                          </RadioGroup>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="architecturalScope"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Scope of Service</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select scope" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {ARCHITECTURAL_SCOPES.map((scope) => (
+                                  <SelectItem key={scope} value={scope}>
+                                    {scope}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="foundationType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Foundation Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select foundation type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FOUNDATION_TYPES.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="structuralSystem"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Structural System</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select structural system" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {STRUCTURAL_SYSTEMS.map((system) => (
+                                  <SelectItem key={system} value={system}>
+                                    {system}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="architecturalServices"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Architectural Services</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include architectural services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="structuralEngineeringServices"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Structural Engineering</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include structural engineering services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="mepEngineering"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>MEP Engineering</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include MEP engineering services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="interiorDesign"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Interior Design</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include interior design services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="customElements"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Custom Elements</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include custom design elements</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="postContractServices"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Post-Contract Services</FormLabel>
+                              <p className="text-sm text-muted-foreground">Include post-contract services</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="rounded-2xl border bg-muted/40 p-6 mt-8">
+                      <h3 className="font-semibold mb-4 text-lg">Project Feasibility Assessment</h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Feasibility Score</span>
+                          <span className="text-2xl font-bold text-primary">{complexity.score}%</span>
+                        </div>
+                        <div className="relative h-4 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-500 ease-out"
+                            style={{ width: `${complexity.score}%` }}
+                          />
+                          <div className="absolute top-0 left-0 h-full flex items-center justify-between px-2 text-xs font-medium text-white/80">
+                            <span>Low</span>
+                            <span>Medium</span>
+                            <span>High</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>0%</span>
+                          <span>50%</span>
+                          <span>100%</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-4">
+                          Based on the information provided, your project has a <span className="font-semibold text-foreground">{complexity.label}</span> complexity level. This assessment considers factors like building type, site conditions, structural requirements, and selected services.
+                        </p>
+                      </div>
+                    </div>
                   </>
-                )}{currentStep === 999 && (
+                )}
+
+                {currentStep === 5 && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                      <ClipboardList className="h-5 w-5 text-primary" />
+                      Review your estimate
+                    </h2>
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <Card className="border">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">Project snapshot</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Project</span>
+                            <span className="text-right font-medium">{watchedValues.projectName || "Untitled project"}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Location</span>
+                            <span className="text-right font-medium">{watchedValues.location}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Building type</span>
+                            <span className="text-right font-medium">{watchedValues.buildingType}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Project type</span>
+                            <span className="text-right font-medium">{watchedValues.projectType}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Floor area</span>
+                            <span className="text-right font-medium">{watchedValues.floorArea} m²</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Floors</span>
+                            <span className="text-right font-medium">{watchedValues.numberOfFloors}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="border">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">People and planning</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Owner</span>
+                            <span className="text-right font-medium">{watchedValues.owner.name || watchedValues.owner.profession}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Primary user</span>
+                            <span className="text-right font-medium">{watchedValues.primaryUser.name || watchedValues.primaryUser.profession}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Roof type</span>
+                            <span className="text-right font-medium">{watchedValues.roofType}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Roof complexity</span>
+                            <span className="text-right font-medium">{watchedValues.roofComplexity}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">View type</span>
+                            <span className="text-right font-medium">{watchedValues.views}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Feasibility</span>
+                            <span className="text-right font-medium">{complexity.label} ({complexity.score}%)</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Card className="border">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Referral and extras</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-5">
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="architectReferral"
+                            render={({ field }) => (
+                              <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Architect Referral</FormLabel>
+                                  <p className="text-sm text-muted-foreground">Include a referral flag for the architect</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="serviceReferral"
+                            render={({ field }) => (
+                              <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Service Referral</FormLabel>
+                                  <p className="text-sm text-muted-foreground">Include a referral flag for service partners</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="referralPercentage"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Referral Percentage</FormLabel>
+                                <FormControl>
+                                  <Input type="number" min={0} step="0.1" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="complimentaryServices"
+                            render={({ field }) => (
+                              <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Complimentary Services</FormLabel>
+                                  <p className="text-sm text-muted-foreground">Mark any services that should be treated as complimentary</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border bg-muted/30">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between gap-6">
+                          <div>
+                            <h3 className="font-semibold text-lg">Ready to generate the cost summary</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              When you submit, we save the estimate and take you to the estimated costs and service fees page.
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs uppercase tracking-wider text-muted-foreground">Live complexity</div>
+                            <div className="text-2xl font-bold text-primary">{complexity.score}%</div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {currentStep === 999 && (
                   <div className="space-y-6">
                     <h2 className="text-2xl font-bold flex items-center gap-2">
                       <Layers3 className="h-5 w-5 text-primary" />
@@ -2080,294 +3198,6 @@ export default function EstimateForm() {
                   </div>
                 )}
 
-                {currentStep === 5 && (
-                  <div className="space-y-8">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-primary" />
-                      Finish Level and Professional Services
-                    </h2>
-
-                    <FormField
-                      control={form.control}
-                      name="finishLevel"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Finish Level</FormLabel>
-                          <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
-                            {FINISH_LEVELS.map((level) => (
-                              <StepButton key={level} selected={field.value === level} onSelect={() => field.onChange(level)}>
-                                {level}
-                              </StepButton>
-                            ))}
-                          </RadioGroup>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="architecturalScope"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Scope of Service</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select scope" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {ARCHITECTURAL_SCOPES.map((scope) => (
-                                  <SelectItem key={scope} value={scope}>
-                                    {scope}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="foundationType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Foundation Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select foundation type" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {FOUNDATION_TYPES.map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {type}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="structuralSystem"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Structural System</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select structural system" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {STRUCTURAL_SYSTEMS.map((system) => (
-                                  <SelectItem key={system} value={system}>
-                                    {system}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="architecturalServices"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Architectural Services</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include architectural services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="structuralEngineeringServices"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Structural Engineering</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include structural engineering services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="mepEngineering"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>MEP Engineering</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include MEP engineering services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="interiorDesign"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Interior Design</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include interior design services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="customElements"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Custom Elements</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include custom architectural elements</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="postContractServices"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Post-Contract Services</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include post-contract support</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="rounded-2xl border bg-muted/40 p-5">
-                      <h3 className="font-semibold mb-2">Automatic complexity summary</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Score: <span className="font-semibold text-foreground">{complexity.score}</span> - Level: <span className="font-semibold text-foreground">{complexity.label}</span>
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        This score will feed into the fee formulas, labour estimate, and duration estimate when the project is saved.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 6 && (
-                  <div className="space-y-8">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-primary" />
-                      Referral & Finish
-                    </h2>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="architectReferral"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Architect Referral</FormLabel>
-                              <p className="text-sm text-muted-foreground">Recommend an architect referral</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="serviceReferral"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Service Referral</FormLabel>
-                              <p className="text-sm text-muted-foreground">Recommend a service referral</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="referralPercentage"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Referral Percentage</FormLabel>
-                            <FormControl>
-                              <Input type="number" min={0} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="complimentaryServices"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Complimentary Services</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include complimentary services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="rounded-2xl border bg-muted/40 p-5">
-                      <h3 className="font-semibold mb-2">Final review</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Review the referral and finish settings before generating your project estimate. These values will be included in the final professional fee and service recommendations.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 <datalist id="professions">
                   {PROFESSIONS.map((profession) => (
                     <option key={profession} value={profession} />
@@ -2391,7 +3221,7 @@ export default function EstimateForm() {
                     </Button>
                   ) : (
                     <Button type="submit" disabled={isPending}>
-                      {isPending ? "Saving estimate..." : "Generate Estimate"}
+                      {isPending ? "Saving estimate..." : "Proceed to Estimated Costs and Service Fees"}
                     </Button>
                   )}
                 </div>
