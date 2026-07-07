@@ -1,0 +1,7 @@
+*.log
+*.out
+*.err
+.gitconfig
+.git-template-empty/
+node_modules/
+dist/
