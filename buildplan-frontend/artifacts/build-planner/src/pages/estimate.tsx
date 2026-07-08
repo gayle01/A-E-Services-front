@@ -389,8 +389,11 @@ export default function EstimateForm() {
   const buildingType = form.watch("buildingType");
   const projectType = form.watch("projectType");
   const selectedNaturalFeature = form.watch("naturalFeatures");
+  const landTenure = form.watch("landTenure");
+  const specialViews = form.watch("specialViews");
   const showLandDocuments = ownLand === "Yes" || ownLand === "Maybe";
   const showLandAssistance = ownLand === "No" || ownLand === "Maybe";
+  const showYearsLeftOnLease = landTenure === "Leasehold";
   const showNaturalFeatureNotes = selectedNaturalFeature !== "" && selectedNaturalFeature !== "None";
   const suggestedSpaces = useMemo(() => {
     const suggestions = new Set<string>(["Living Room", "Kitchen", "Bathrooms", "Circulation"]);
@@ -434,6 +437,30 @@ export default function EstimateForm() {
       });
     }
   }, [form, plotLength, plotBreadth]);
+
+  useEffect(() => {
+    if (!showYearsLeftOnLease && form.getValues("yearsLeftOnLease") !== undefined) {
+      form.setValue("yearsLeftOnLease", undefined, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+  }, [form, showYearsLeftOnLease]);
+
+  useEffect(() => {
+    if (!specialViews) {
+      const hasViewFields =
+        form.getValues("viewLocation") !== undefined ||
+        form.getValues("featuresOfViews") !== undefined ||
+        form.getValues("visibleFeatures") !== undefined;
+
+      if (hasViewFields) {
+        form.setValue("viewLocation", undefined, { shouldDirty: true, shouldValidate: true });
+        form.setValue("featuresOfViews", undefined, { shouldDirty: true, shouldValidate: true });
+        form.setValue("visibleFeatures", undefined, { shouldDirty: true, shouldValidate: true });
+      }
+    }
+  }, [form, specialViews]);
 
   const progress = ((currentStep + 1) / stepConfig.length) * 100;
 
@@ -1054,6 +1081,22 @@ export default function EstimateForm() {
                           </FormItem>
                         )}
                       />
+                      {showYearsLeftOnLease && (
+                        <FormField
+                          control={form.control}
+                          name="yearsLeftOnLease"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Years Left on Lease</FormLabel>
+                              <FormControl>
+                                <Input type="number" min={0} placeholder="Enter years remaining" {...field} />
+                              </FormControl>
+                              <p className="text-xs text-muted-foreground">Only applicable for leasehold properties</p>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                     </div>
 
                     {showLandDocuments && (
@@ -1238,20 +1281,6 @@ export default function EstimateForm() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="yearsLeftOnLease"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Years Left on Lease</FormLabel>
-                            <FormControl>
-                              <Input type="number" min={0} placeholder="Enter years remaining" {...field} />
-                            </FormControl>
-                            <p className="text-xs text-muted-foreground">Only applicable for leasehold properties</p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                       <div className="space-y-2">
                         <label className="text-sm font-medium leading-none">Plot Area</label>
                         <div className="flex gap-2">
@@ -1402,8 +1431,8 @@ export default function EstimateForm() {
                             <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Have you visited the land?</FormLabel>
-                            <p className="text-xs text-muted-foreground">Yes / No</p>
+                            <FormLabel>I have visited the land</FormLabel>
+                            <p className="text-xs text-muted-foreground">Tick if applicable</p>
                           </div>
                         </FormItem>
                       )}
@@ -1484,7 +1513,7 @@ export default function EstimateForm() {
                           <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
                             <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel>Have you done soil survey?</FormLabel>
+                              <FormLabel>I have done soil survey</FormLabel>
                               <p className="text-xs text-muted-foreground">Yes / No</p>
                             </div>
                           </FormItem>
@@ -1497,7 +1526,7 @@ export default function EstimateForm() {
                           <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
                             <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel>Have you done topographic survey?</FormLabel>
+                              <FormLabel>I have done topographic survey</FormLabel>
                               <p className="text-xs text-muted-foreground">Yes / No</p>
                             </div>
                           </FormItem>
@@ -1556,52 +1585,56 @@ export default function EstimateForm() {
                         <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
                           <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Are there special views?</FormLabel>
+                            <FormLabel>There are special views</FormLabel>
                             <p className="text-sm text-muted-foreground">Yes / No</p>
                           </div>
                         </FormItem>
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="viewLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Location of the Views</FormLabel>
-                          <FormControl><Input placeholder="e.g. north side, roadside, waterfront" {...field} /></FormControl>
-                          <p className="text-xs text-muted-foreground">Describe the position of the views, such as north-facing or road-facing.</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {specialViews && (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="viewLocation"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Location of the Views</FormLabel>
+                              <FormControl><Input placeholder="e.g. north side, roadside, waterfront" {...field} /></FormControl>
+                              <p className="text-xs text-muted-foreground">Describe the position of the views, such as north-facing or road-facing.</p>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name="featuresOfViews"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Features of the Views</FormLabel>
-                          <FormControl><Textarea placeholder="Describe the features of the views (e.g., ocean, mountains, city skyline)" {...field} /></FormControl>
-                          <p className="text-xs text-muted-foreground">What makes the views special?</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        <FormField
+                          control={form.control}
+                          name="featuresOfViews"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Features of the Views</FormLabel>
+                              <FormControl><Textarea placeholder="Describe the features of the views (e.g., ocean, mountains, city skyline)" {...field} /></FormControl>
+                              <p className="text-xs text-muted-foreground">What makes the views special?</p>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name="visibleFeatures"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Visible Features</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Describe the visible features or details the user should provide" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        <FormField
+                          control={form.control}
+                          name="visibleFeatures"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Visible Features</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Describe the visible features or details the user should provide" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
 
                     <h3 className="text-lg font-semibold mt-6 mb-4">Neighbourhood Character</h3>
 

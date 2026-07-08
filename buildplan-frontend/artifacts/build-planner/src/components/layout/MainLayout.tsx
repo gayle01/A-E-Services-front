@@ -7,12 +7,12 @@ export function MainLayout({ children }: { children: ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col bg-background">
       <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 sticky top-0 z-50">
         <div className="container mx-auto px-4 md:px-8 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 text-primary font-bold text-xl tracking-tight">
+          <Link href="/home" className="flex items-center gap-2 text-primary font-bold text-xl tracking-tight">
             <Hammer className="h-6 w-6" />
             <span>BuildPlan</span>
           </Link>
           <nav className="flex items-center gap-2 md:gap-4 overflow-x-auto">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors px-3 py-2 rounded-md hover:bg-muted whitespace-nowrap">
+            <Link href="/home" className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors px-3 py-2 rounded-md hover:bg-muted whitespace-nowrap">
               <Home className="h-4 w-4" />
               Home
             </Link>
