@@ -1,7 +1,7 @@
 import { useGreetingAnimation } from "../hooks/useGreetingAnimation";
 
-export default function GreetingAnimation({ greetings }) {
-  const { currentGreeting } = useGreetingAnimation(greetings, 2500);
+export default function GreetingAnimation() {
+  const { currentGreeting } = useGreetingAnimation();
 
   return (
     <div className="min-h-[140px] md:min-h-[160px] lg:min-h-[180px] flex items-center justify-center">

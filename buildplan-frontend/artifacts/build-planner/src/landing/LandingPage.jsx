@@ -14,42 +14,36 @@ const languages = [
 
 const copyByLanguage = {
   en: {
-    greetings: ["Hello", "Welcome", "Hello there", "Let's begin"],
     headline: "Tell Us About Your Project.",
     description:
       "Answer a few quick questions about your project to generate an estimated construction cost and professional fees.",
     cta: "Get Started",
   },
   fr: {
-    greetings: ["Bonjour", "Bienvenue", "Salut", "Commencons"],
     headline: "Parlez-nous de votre projet.",
     description:
       "Repondez a quelques questions rapides sur votre projet pour generer un cout de construction estime et des honoraires professionnels.",
     cta: "Commencer",
   },
   es: {
-    greetings: ["Hola", "Bienvenido", "Vamos", "Empecemos"],
     headline: "Cuentanos sobre tu proyecto.",
     description:
       "Responde algunas preguntas rapidas sobre tu proyecto para generar un costo de construccion estimado y honorarios profesionales.",
     cta: "Comenzar",
   },
   de: {
-    greetings: ["Hallo", "Willkommen", "Los gehts", "Lass uns starten"],
     headline: "Erzahlen Sie uns von Ihrem Projekt.",
     description:
       "Beantworten Sie ein paar kurze Fragen zu Ihrem Projekt, um die geschatzten Baukosten und professionellen Gebuhren zu ermitteln.",
     cta: "Starten",
   },
   it: {
-    greetings: ["Ciao", "Benvenuto", "Iniziamo", "Pronti"],
     headline: "Raccontaci del tuo progetto.",
     description:
       "Rispondi a qualche domanda veloce sul tuo progetto per generare un costo di costruzione stimato e gli onorari professionali.",
     cta: "Inizia",
   },
   pt: {
-    greetings: ["Ola", "Bem-vindo", "Vamos la", "Comecar"],
     headline: "Fale-nos sobre o seu projeto.",
     description:
       "Responda a algumas perguntas rapidas sobre o seu projeto para gerar um custo de construcao estimado e honorarios profissionais.",
@@ -125,7 +119,7 @@ export default function LandingPage() {
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] max-w-5xl flex-col items-center justify-center px-6 pb-20 text-center text-white md:px-10">
         <div className="mb-4">
-          <GreetingAnimation greetings={copy.greetings} />
+          <GreetingAnimation />
         </div>
 
         <h2 className="max-w-5xl text-4xl font-semibold tracking-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.35)] md:text-7xl">

@@ -130,7 +130,6 @@ const estimateSchema = z.object({
   }),
   primaryUserSameAsOwner: z.boolean().optional(),
   floorArea: z.coerce.number().min(10, "Floor area must be at least 10 m2."),
-  visibleFeatures: z.string().optional(),
   spacesRequired: z.array(z.object({
     name: z.string(),
     dimensions: z.string().optional(),
@@ -178,9 +177,8 @@ const estimateSchema = z.object({
   specialViews: z.boolean(),
   viewLocation: z.string().optional(),
   featuresOfViews: z.string().optional(),
-  naturalFeatures: z.enum(NATURAL_FEATURES),
+  naturalFeatures: z.string().optional(),
   naturalFeatureNotes: z.string().optional(),
-  dominantNaturalFeature: z.string().optional(),
   accessRoads: z.enum(ACCESS_ROADS),
   accessWays: z.string().optional(),
   orientation: z.string().optional(),
@@ -191,7 +189,7 @@ const estimateSchema = z.object({
   basement: z.boolean(),
   largeOpenSpaces: z.boolean(),
   cantileversOrBalconies: z.boolean(),
-  roofComplexity: z.enum(ROOF_COMPLEXITIES),
+  roofComplexity: z.enum(ROOF_COMPLEXITIES).optional(),
   architecturalScope: z.enum(ARCHITECTURAL_SCOPES),
   foundationType: z.enum(FOUNDATION_TYPES),
   structuralSystem: z.enum(STRUCTURAL_SYSTEMS),
@@ -306,7 +304,6 @@ export default function EstimateForm() {
         maritalStatus: "Single",
       },
       floorArea: 120,
-      visibleFeatures: "",
       spacesRequired: [],
       measurement: "",
       plotLength: 20,
@@ -350,7 +347,6 @@ export default function EstimateForm() {
       featuresOfViews: "",
       naturalFeatures: "",
       naturalFeatureNotes: "",
-      dominantNaturalFeature: "",
       accessRoads: "Good",
       accessWays: "",
       orientation: "",
@@ -361,7 +357,7 @@ export default function EstimateForm() {
       basement: false,
       largeOpenSpaces: false,
       cantileversOrBalconies: false,
-      roofComplexity: "",
+      roofComplexity: undefined,
       architecturalScope: "Full Design",
       foundationType: "Strip",
       structuralSystem: "Reinforced Concrete Frame",
@@ -394,7 +390,7 @@ export default function EstimateForm() {
   const showLandDocuments = ownLand === "Yes" || ownLand === "Maybe";
   const showLandAssistance = ownLand === "No" || ownLand === "Maybe";
   const showYearsLeftOnLease = landTenure === "Leasehold";
-  const showNaturalFeatureNotes = selectedNaturalFeature !== "" && selectedNaturalFeature !== "None";
+  const showNaturalFeatureNotes = Boolean(selectedNaturalFeature?.trim());
   const suggestedSpaces = useMemo(() => {
     const suggestions = new Set<string>(["Living Room", "Kitchen", "Bathrooms", "Circulation"]);
 
@@ -449,16 +445,8 @@ export default function EstimateForm() {
 
   useEffect(() => {
     if (!specialViews) {
-      const hasViewFields =
-        form.getValues("viewLocation") !== undefined ||
-        form.getValues("featuresOfViews") !== undefined ||
-        form.getValues("visibleFeatures") !== undefined;
-
-      if (hasViewFields) {
-        form.setValue("viewLocation", undefined, { shouldDirty: true, shouldValidate: true });
-        form.setValue("featuresOfViews", undefined, { shouldDirty: true, shouldValidate: true });
-        form.setValue("visibleFeatures", undefined, { shouldDirty: true, shouldValidate: true });
-      }
+      form.setValue("viewLocation", undefined, { shouldDirty: true, shouldValidate: true });
+      form.setValue("featuresOfViews", undefined, { shouldDirty: true, shouldValidate: true });
     }
   }, [form, specialViews]);
 
@@ -470,7 +458,7 @@ export default function EstimateForm() {
     const stepFields: Record<number, Array<keyof FormValues | string>> = {
       0: ["owner.name", "owner.profession", "owner.ageGroup", "owner.annualIncome", "owner.religion", "owner.ethnicity", "owner.socialStatus", "owner.maritalStatus", "primaryUser.name", "primaryUser.profession", "primaryUser.ageGroup", "primaryUser.annualIncome", "primaryUser.religion", "primaryUser.ethnicity", "primaryUser.socialStatus", "primaryUser.maritalStatus"],
       1: ["ownLand", "landDocumentsHeld", "landAssistanceBuyLand", "landAssistanceSiteSelection", "landTenure", "sitePlanAvailable", "landTitleAvailable", "indentureAvailable", "plotSize", "zoning", "environmentalZone"],
-      2: ["siteTopography", "siteAccessibility", "soilSurvey", "topographicSurvey", "specialViews", "visibleFeatures", "viewLocation", "accessRoads", "orientation", "buildingStyle", "naturalFeatures", "naturalFeatureNotes", "selectedAddOnServices", "existingUtilities", "basement", "largeOpenSpaces", "cantileversOrBalconies", "roofComplexity"],
+      2: ["siteTopography", "siteAccessibility", "soilSurvey", "topographicSurvey", "specialViews", "viewLocation", "accessRoads", "orientation", "buildingStyle", "naturalFeatures", "naturalFeatureNotes", "selectedAddOnServices", "existingUtilities", "basement", "largeOpenSpaces", "cantileversOrBalconies", "roofComplexity"],
       3: ["projectName", "location", "buildingType", "projectType", "constructionMethod", "projectComplexity", "designStyle", "spacesRequired", "measurement", "projectBudget", "projectBudgetCurrency", "constructionFeeStructure", "floorArea", "plotLength", "plotBreadth", "numberOfFloors", "numberOfBedrooms", "numberOfBathrooms", "roofType", "buildingShape"],
       4: ["constructionPhasing", "soilCondition", "finishLevel", "architecturalServices", "structuralEngineeringServices", "mepEngineering", "interiorDesign", "customElements", "postContractServices", "architecturalScope", "foundationType", "structuralSystem"],
     };
@@ -1620,19 +1608,6 @@ export default function EstimateForm() {
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="visibleFeatures"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Visible Features</FormLabel>
-                              <FormControl>
-                                <Textarea placeholder="Describe the visible features or details the user should provide" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </>
                     )}
 
@@ -1697,85 +1672,66 @@ export default function EstimateForm() {
                       )}
                     />
 
-                    <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="naturalFeatures"
-                      render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Natural Features</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select natural features" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {NATURAL_FEATURES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">Select any natural features present on or near the site (e.g., trees, water bodies, hills).</p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {showNaturalFeatureNotes && (
+                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+                      <div className="space-y-6">
                         <FormField
                           control={form.control}
-                          name="naturalFeatureNotes"
+                          name="naturalFeatures"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Additional Notes</FormLabel>
+                              <FormLabel>Dominant Features</FormLabel>
                               <FormControl>
-                                <Textarea
-                                  placeholder="Add any extra notes about the selected natural feature."
-                                  {...field}
+                                <MultiSelectInput
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  suggestions={NATURAL_FEATURES as string[]}
+                                  placeholder="Select multiple dominant features with commas"
                                 />
                               </FormControl>
-                              <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
+                              <p className="text-xs text-muted-foreground">Select one or more features present on or near the site (e.g., trees, water bodies, hills).</p>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      )}
-                      <FormField
-                        control={form.control}
-                        name="dominantNaturalFeature"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Dominant Natural Feature</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                        {showNaturalFeatureNotes && (
+                          <FormField
+                            control={form.control}
+                            name="naturalFeatureNotes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Additional Notes</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Add any extra notes about the dominant features."
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                        <FormField
+                          control={form.control}
+                          name="existingUtilities"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Existing Utilities</FormLabel>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select or type custom" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {NATURAL_FEATURES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                                <SelectItem value="custom">Type custom info...</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {field.value === "custom" && (
-                              <FormControl className="mt-2">
-                                <Input
-                                  placeholder="Enter custom natural feature"
-                                  onChange={(e) => field.onChange(e.target.value)}
+                                <MultiSelectInput
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  suggestions={["Water", "Electricity", "Gas", "Sewerage", "Internet", "Telephone"]}
+                                  placeholder="Select available utilities with commas"
                                 />
                               </FormControl>
-                            )}
-                            <p className="text-xs text-muted-foreground">Select the dominant natural feature or type custom information.</p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                              <p className="text-xs text-muted-foreground">Select which utility services are already available at the site.</p>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
                       <div className="space-y-4 rounded-2xl border bg-muted/20 p-5">
                         <div>
@@ -1791,7 +1747,7 @@ export default function EstimateForm() {
                             const selected = Array.isArray(field.value) ? field.value : [];
 
                             return (
-                              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                              <div className="grid gap-3 md:grid-cols-2">
                                 {ADD_ON_SERVICE_OPTIONS.map((option) => {
                                   const checked = selected.includes(option);
 
@@ -1822,26 +1778,6 @@ export default function EstimateForm() {
                           }}
                         />
                       </div>
-
-                      <FormField
-                        control={form.control}
-                        name="existingUtilities"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Existing Utilities</FormLabel>
-                            <FormControl>
-                              <MultiSelectInput
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                suggestions={["Water", "Electricity", "Gas", "Sewerage", "Internet", "Telephone"]}
-                                placeholder="Select available utilities with commas"
-                              />
-                            </FormControl>
-                            <p className="text-xs text-muted-foreground">Select which utility services are already available at the site.</p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
@@ -1850,11 +1786,11 @@ export default function EstimateForm() {
                         name="roofComplexity"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Roof Complexity</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormLabel>Roof Complexity (Optional)</FormLabel>
+                            <Select onValueChange={(value) => field.onChange(value || undefined)} value={field.value ?? ""}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select roof complexity" />
+                                  <SelectValue placeholder="Optional: select roof complexity" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -1865,7 +1801,7 @@ export default function EstimateForm() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <p className="text-xs text-muted-foreground">Select the complexity level of the roof design (Simple = flat/single slope, Complex = multiple levels/angles).</p>
+                            <p className="text-xs text-muted-foreground">Leave this blank if roof complexity should not affect the brief.</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -3099,25 +3035,20 @@ export default function EstimateForm() {
                       name="naturalFeatures"
                       render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Natural Features</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select natural features" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {NATURAL_FEATURES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormLabel>Dominant Features</FormLabel>
+                          <FormControl>
+                            <MultiSelectInput
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              suggestions={NATURAL_FEATURES as string[]}
+                              placeholder="Select multiple dominant features with commas"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Select one or more features present on or near the site.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                       {showNaturalFeatureNotes && (
                         <FormField
                           control={form.control}
@@ -3127,7 +3058,7 @@ export default function EstimateForm() {
                               <FormLabel>Additional Notes</FormLabel>
                               <FormControl>
                                 <Textarea
-                                  placeholder="Add any extra notes about the selected natural feature."
+                                  placeholder="Add any extra notes about the dominant features."
                                   {...field}
                                 />
                               </FormControl>

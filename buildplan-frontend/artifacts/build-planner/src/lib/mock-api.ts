@@ -204,7 +204,6 @@ export type ProjectInput = {
   owner: PersonProfile;
   primaryUser: PersonProfile;
   floorArea: number;
-  visibleFeatures?: string;
   spacesRequired?: string;
   mustHaveSpaces?: string;
   niceToHaveSpaces?: string;
@@ -243,7 +242,7 @@ export type ProjectInput = {
   basement: boolean;
   largeOpenSpaces: boolean;
   cantileversOrBalconies: boolean;
-  roofComplexity: RoofComplexity;
+  roofComplexity?: RoofComplexity;
   architecturalScope: ArchitecturalScope;
   foundationType: FoundationType;
   structuralSystem: StructuralSystem;
@@ -387,7 +386,7 @@ export function calculateStructuralComplexity(project: ProjectInput) {
   };
 
   score += shapeScores[project.buildingShape];
-  score += roofScores[project.roofComplexity];
+  score += roofScores[project.roofComplexity ?? "Simple"];
   score += project.basement ? 12 : 0;
   score += project.largeOpenSpaces ? 8 : 0;
   score += project.cantileversOrBalconies ? 8 : 0;
