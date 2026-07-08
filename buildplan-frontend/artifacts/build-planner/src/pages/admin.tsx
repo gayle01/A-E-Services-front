@@ -32,7 +32,7 @@ import {
   type LocationPrice,
   type MaterialPrice,
 } from "@/lib/mock-api";
-import { BarChart3, Layers3, Plus, Settings, ShieldCheck, Users } from "lucide-react";
+import { BarChart3, Layers3, Pencil, Plus, Settings, ShieldCheck, Trash2, Users } from "lucide-react";
 
 const COLORS = ["#1d4ed8", "#ea580c", "#16a34a", "#7c3aed"];
 
@@ -198,14 +198,17 @@ export default function Admin() {
                 </div>
                 <div>
                   <Label>Material</Label>
-                  <Select value={materialForm.materialName} onValueChange={(value) => setMaterialForm((form) => ({ ...form, materialName: value }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {MATERIAL_NAMES.map((name) => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    list="material-options"
+                    value={materialForm.materialName} 
+                    onChange={(event) => setMaterialForm((form) => ({ ...form, materialName: event.target.value }))} 
+                    placeholder="Select or type custom material"
+                  />
+                  <datalist id="material-options">
+                    {MATERIAL_NAMES.map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </datalist>
                 </div>
                 <div>
                   <Label>Unit</Label>
@@ -244,7 +247,14 @@ export default function Admin() {
                         <td className="p-4">{item.unit}</td>
                         <td className="p-4">{formatGHS(item.price)}</td>
                         <td className="p-4">
-                          <Button variant="ghost" size="sm" onClick={() => deleteMaterial.mutate(item.id)}>Delete</Button>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteMaterial.mutate(item.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -271,6 +281,7 @@ export default function Admin() {
                 <div>
                   <Label>Multiplier</Label>
                   <Input type="number" step="0.01" value={locationForm.multiplier} onChange={(event) => setLocationForm((form) => ({ ...form, multiplier: event.target.value }))} />
+                  <p className="text-xs text-muted-foreground mt-1">Cost adjustment factor for this location (e.g., 1.0 = base cost, 1.2 = 20% higher costs)</p>
                 </div>
                 <div className="md:col-span-3">
                   <Button onClick={saveLocation}>
@@ -299,7 +310,14 @@ export default function Admin() {
                         <td className="p-4">{item.label}</td>
                         <td className="p-4">{item.multiplier}</td>
                         <td className="p-4">
-                          <Button variant="ghost" size="sm" onClick={() => deleteLocation.mutate(item.id)}>Delete</Button>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteLocation.mutate(item.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -369,7 +387,14 @@ export default function Admin() {
                         <td className="p-4">{item.basis}</td>
                         <td className="p-4">{item.rate}</td>
                         <td className="p-4">
-                          <Button variant="ghost" size="sm" onClick={() => deleteFeeRate.mutate(item.id)}>Delete</Button>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteFeeRate.mutate(item.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -462,7 +487,14 @@ export default function Admin() {
                         <td className="p-4">{item.email}</td>
                         <td className="p-4 capitalize">{item.role}</td>
                         <td className="p-4">
-                          <Button variant="ghost" size="sm" onClick={() => deleteUser.mutate(item.id)}>Delete</Button>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteUser.mutate(item.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}

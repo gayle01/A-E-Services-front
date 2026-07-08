@@ -13,7 +13,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   return (
     <label
       className={cn(
-        "relative inline-flex h-4 w-4 items-center justify-center rounded-sm border border-primary bg-background shadow-sm",
+        "relative inline-flex h-5 w-5 items-center justify-center rounded-sm border border-primary bg-background shadow-sm",
         checked ? "bg-primary text-primary-foreground" : "text-transparent",
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
         className,
@@ -29,7 +29,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           className="sr-only"
           {...props}
         />
-        {checked ? <Check className="h-3 w-3" /> : null}
+        {checked ? <Check className="h-4 w-4" /> : null}
       </label>
     );
   },

@@ -128,6 +128,7 @@ const estimateSchema = z.object({
     socialStatus: z.string().optional(),
     maritalStatus: z.enum(MARITAL_STATUSES).optional(),
   }),
+  primaryUserSameAsOwner: z.boolean().optional(),
   floorArea: z.coerce.number().min(10, "Floor area must be at least 10 m2."),
   visibleFeatures: z.string().optional(),
   spacesRequired: z.array(z.object({
@@ -375,6 +376,7 @@ export default function EstimateForm() {
       serviceReferral: false,
       referralPercentage: 0,
       complimentaryServices: false,
+      primaryUserSameAsOwner: false,
     },
     mode: "onTouched",
   });
@@ -588,30 +590,6 @@ export default function EstimateForm() {
                       />
                         <FormField
                           control={form.control}
-                          name="owner.currency"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Currency</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select currency" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {CURRENCIES.map((currency) => (
-                                    <SelectItem key={currency.code} value={currency.code}>
-                                      {currency.symbol} - {currency.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
                           name="owner.annualIncome"
                           render={({ field }) => {
                             const currency = form.watch("owner.currency") || "USD";
@@ -634,6 +612,30 @@ export default function EstimateForm() {
                               </FormItem>
                             );
                           }}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="owner.currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select currency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {CURRENCIES.map((currency) => (
+                                    <SelectItem key={currency.code} value={currency.code}>
+                                      {currency.symbol} - {currency.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
                         <FormField
                           control={form.control}
@@ -728,6 +730,47 @@ export default function EstimateForm() {
                       <CardContent className="space-y-5">
                         <FormField
                           control={form.control}
+                          name="primaryUserSameAsOwner"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    if (checked) {
+                                      form.setValue("primaryUser.name", form.watch("owner.name"));
+                                      form.setValue("primaryUser.profession", form.watch("owner.profession"));
+                                      form.setValue("primaryUser.ageGroup", form.watch("owner.ageGroup"));
+                                      form.setValue("primaryUser.annualIncome", form.watch("owner.annualIncome"));
+                                      form.setValue("primaryUser.currency", form.watch("owner.currency"));
+                                      form.setValue("primaryUser.religion", form.watch("owner.religion"));
+                                      form.setValue("primaryUser.ethnicity", form.watch("owner.ethnicity"));
+                                      form.setValue("primaryUser.socialStatus", form.watch("owner.socialStatus"));
+                                      form.setValue("primaryUser.maritalStatus", form.watch("owner.maritalStatus"));
+                                    } else {
+                                      form.setValue("primaryUser.name", "");
+                                      form.setValue("primaryUser.profession", "");
+                                      form.setValue("primaryUser.ageGroup", "35-44");
+                                      form.setValue("primaryUser.annualIncome", 0);
+                                      form.setValue("primaryUser.currency", "USD");
+                                      form.setValue("primaryUser.religion", "Christianity");
+                                      form.setValue("primaryUser.ethnicity", "");
+                                      form.setValue("primaryUser.socialStatus", "Employed");
+                                      form.setValue("primaryUser.maritalStatus", "Single");
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Primary user is the same as owner</FormLabel>
+                                <p className="text-xs text-muted-foreground">Copy all owner details to primary user</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
                           name="primaryUser.name"
                           render={({ field }) => (
                             <FormItem>
@@ -784,30 +827,6 @@ export default function EstimateForm() {
                         />
                         <FormField
                           control={form.control}
-                          name="primaryUser.currency"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Currency</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select currency" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {CURRENCIES.map((currency) => (
-                                    <SelectItem key={currency.code} value={currency.code}>
-                                      {currency.symbol} - {currency.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
                           name="primaryUser.annualIncome"
                           render={({ field }) => {
                             const currency = form.watch("primaryUser.currency") || "USD";
@@ -830,6 +849,30 @@ export default function EstimateForm() {
                               </FormItem>
                             );
                           }}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="primaryUser.currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select currency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {CURRENCIES.map((currency) => (
+                                    <SelectItem key={currency.code} value={currency.code}>
+                                      {currency.symbol} - {currency.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
                         <FormField
                           control={form.control}
