@@ -78,7 +78,7 @@ export default function LandingPage() {
           <img
             src="/logo.png"
             alt="ARCH ESTIMATES"
-            className="h-10 w-10 rounded-full object-cover shadow-lg shadow-black/20 ring-1 ring-white/15"
+            className="h-11 w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
           />
           <span className="text-xl font-semibold tracking-tight text-white">
             ARCH ESTIMATES
@@ -98,7 +98,7 @@ export default function LandingPage() {
           </button>
 
           {isDropdownOpen ? (
-            <div className="absolute right-0 mt-3 w-48 overflow-hidden rounded-2xl border border-white/15 bg-slate-900/90 shadow-2xl backdrop-blur-xl">
+            <div className="absolute right-0 mt-3 w-56 max-h-64 overflow-y-auto overscroll-contain rounded-2xl border border-white/15 bg-slate-900/95 shadow-2xl backdrop-blur-xl">
               {languages.map((item) => (
                 <button
                   key={item.code}
@@ -107,7 +107,7 @@ export default function LandingPage() {
                     setLanguage(item.code);
                     setIsDropdownOpen(false);
                   }}
-                  className="block w-full px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/10"
+                  className="block w-full px-5 py-4 text-left text-sm font-medium text-white transition hover:bg-white/10"
                 >
                   {item.name}
                 </button>

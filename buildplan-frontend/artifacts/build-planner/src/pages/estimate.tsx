@@ -447,6 +447,8 @@ export default function EstimateForm() {
     if (!specialViews) {
       form.setValue("viewLocation", undefined, { shouldDirty: true, shouldValidate: true });
       form.setValue("featuresOfViews", undefined, { shouldDirty: true, shouldValidate: true });
+      form.setValue("naturalFeatures", undefined, { shouldDirty: true, shouldValidate: true });
+      form.setValue("naturalFeatureNotes", undefined, { shouldDirty: true, shouldValidate: true });
     }
   }, [form, specialViews]);
 
@@ -1674,44 +1676,48 @@ export default function EstimateForm() {
 
                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
                       <div className="space-y-6">
-                        <FormField
-                          control={form.control}
-                          name="naturalFeatures"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Dominant Features</FormLabel>
-                              <FormControl>
-                                <MultiSelectInput
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  suggestions={NATURAL_FEATURES as string[]}
-                                  placeholder="Select multiple dominant features with commas"
-                                />
-                              </FormControl>
-                              <p className="text-xs text-muted-foreground">Select one or more features present on or near the site (e.g., trees, water bodies, hills).</p>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        {showNaturalFeatureNotes && (
-                          <FormField
-                            control={form.control}
-                            name="naturalFeatureNotes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Additional Notes</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Add any extra notes about the dominant features."
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
-                                <FormMessage />
-                              </FormItem>
+                        {specialViews ? (
+                          <>
+                            <FormField
+                              control={form.control}
+                              name="naturalFeatures"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Dominant Features</FormLabel>
+                                  <FormControl>
+                                    <MultiSelectInput
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                      suggestions={NATURAL_FEATURES as string[]}
+                                      placeholder="Select multiple dominant features with commas"
+                                    />
+                                  </FormControl>
+                                  <p className="text-xs text-muted-foreground">Select one or more features present on or near the site (e.g., trees, water bodies, hills).</p>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            {showNaturalFeatureNotes && (
+                              <FormField
+                                control={form.control}
+                                name="naturalFeatureNotes"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Additional Notes</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Add any extra notes about the dominant features."
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
                             )}
-                          />
-                        )}
+                          </>
+                        ) : null}
                         <FormField
                           control={form.control}
                           name="existingUtilities"
@@ -3030,44 +3036,48 @@ export default function EstimateForm() {
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="naturalFeatures"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Dominant Features</FormLabel>
-                          <FormControl>
-                            <MultiSelectInput
-                              value={field.value || ""}
-                              onChange={field.onChange}
-                              suggestions={NATURAL_FEATURES as string[]}
-                              placeholder="Select multiple dominant features with commas"
-                            />
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">Select one or more features present on or near the site.</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                      {showNaturalFeatureNotes && (
+                    {specialViews ? (
+                      <>
                         <FormField
                           control={form.control}
-                          name="naturalFeatureNotes"
+                          name="naturalFeatures"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Additional Notes</FormLabel>
+                              <FormLabel>Dominant Features</FormLabel>
                               <FormControl>
-                                <Textarea
-                                  placeholder="Add any extra notes about the dominant features."
-                                  {...field}
+                                <MultiSelectInput
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  suggestions={NATURAL_FEATURES as string[]}
+                                  placeholder="Select multiple dominant features with commas"
                                 />
                               </FormControl>
-                              <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
+                              <p className="text-xs text-muted-foreground">Select one or more features present on or near the site.</p>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      )}
+                        {showNaturalFeatureNotes && (
+                          <FormField
+                            control={form.control}
+                            name="naturalFeatureNotes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Additional Notes</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Add any extra notes about the dominant features."
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </>
+                    ) : null}
                       <FormField
                         control={form.control}
                         name="existingUtilities"
