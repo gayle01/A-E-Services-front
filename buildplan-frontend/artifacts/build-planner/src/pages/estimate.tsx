@@ -1398,12 +1398,12 @@ export default function EstimateForm() {
                       Site Features
                     </h2>
 
-                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+                    <div className="space-y-6">
                       <FormField
                         control={form.control}
                         name="tellUsMore"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="w-full">
                             <FormLabel>Tell us more</FormLabel>
                             <FormControl>
                               <Textarea placeholder="Provide any additional details about the site" {...field} />
@@ -1413,7 +1413,7 @@ export default function EstimateForm() {
                         )}
                       />
 
-                      <div className="space-y-4 rounded-2xl border bg-muted/20 p-5 xl:self-start xl:sticky xl:top-6">
+                      <div className="w-full space-y-4 rounded-2xl border bg-muted/20 p-5">
                         <div>
                           <h3 className="font-semibold text-lg">Add-on Services</h3>
                           <p className="text-xs text-muted-foreground">
@@ -1658,6 +1658,46 @@ export default function EstimateForm() {
                           )}
                         />
 
+                        <FormField
+                          control={form.control}
+                          name="naturalFeatures"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Dominant Features</FormLabel>
+                              <FormControl>
+                                <MultiSelectInput
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  suggestions={NATURAL_FEATURES as string[]}
+                                  placeholder="Select multiple dominant features with commas"
+                                />
+                              </FormControl>
+                              <p className="text-xs text-muted-foreground">Select one or more features present on or near the site (e.g., trees, water bodies, hills).</p>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {showNaturalFeatureNotes && (
+                          <FormField
+                            control={form.control}
+                            name="naturalFeatureNotes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Additional Notes</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Add any extra notes about the dominant features."
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
                       </>
                     )}
 
@@ -1722,72 +1762,25 @@ export default function EstimateForm() {
                       )}
                     />
 
-                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-                      <div className="space-y-6">
-                        {specialViews ? (
-                          <>
-                            <FormField
-                              control={form.control}
-                              name="naturalFeatures"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Dominant Features</FormLabel>
-                                  <FormControl>
-                                    <MultiSelectInput
-                                      value={field.value || ""}
-                                      onChange={field.onChange}
-                                      suggestions={NATURAL_FEATURES as string[]}
-                                      placeholder="Select multiple dominant features with commas"
-                                    />
-                                  </FormControl>
-                                  <p className="text-xs text-muted-foreground">Select one or more features present on or near the site (e.g., trees, water bodies, hills).</p>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                    <FormField
+                      control={form.control}
+                      name="existingUtilities"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Existing Utilities</FormLabel>
+                          <FormControl>
+                            <MultiSelectInput
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              suggestions={["Water", "Electricity", "Gas", "Sewerage", "Internet", "Telephone"]}
+                              placeholder="Select available utilities with commas"
                             />
-                            {showNaturalFeatureNotes && (
-                              <FormField
-                                control={form.control}
-                                name="naturalFeatureNotes"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Additional Notes</FormLabel>
-                                    <FormControl>
-                                      <Textarea
-                                        placeholder="Add any extra notes about the dominant features."
-                                        {...field}
-                                      />
-                                    </FormControl>
-                                    <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            )}
-                          </>
-                        ) : null}
-                        <FormField
-                          control={form.control}
-                          name="existingUtilities"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Existing Utilities</FormLabel>
-                              <FormControl>
-                                <MultiSelectInput
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  suggestions={["Water", "Electricity", "Gas", "Sewerage", "Internet", "Telephone"]}
-                                  placeholder="Select available utilities with commas"
-                                />
-                              </FormControl>
-                              <p className="text-xs text-muted-foreground">Select which utility services are already available at the site.</p>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                    </div>
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Select which utility services are already available at the site.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <FormField
