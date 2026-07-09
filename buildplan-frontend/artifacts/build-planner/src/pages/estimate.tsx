@@ -1398,19 +1398,67 @@ export default function EstimateForm() {
                       Site Features
                     </h2>
 
-                    <FormField
-                      control={form.control}
-                      name="tellUsMore"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tell us more</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Provide any additional details about the site" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+                      <FormField
+                        control={form.control}
+                        name="tellUsMore"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tell us more</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Provide any additional details about the site" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="space-y-4 rounded-2xl border bg-muted/20 p-5 xl:self-start xl:sticky xl:top-6">
+                        <div>
+                          <h3 className="font-semibold text-lg">Add-on Services</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Choose optional site-related support services such as site visits, verification, fencing, and surveys.
+                          </p>
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name="selectedAddOnServices"
+                          render={({ field }) => {
+                            const selected = Array.isArray(field.value) ? field.value : [];
+
+                            return (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {ADD_ON_SERVICE_OPTIONS.map((option) => {
+                                  const checked = selected.includes(option);
+
+                                  return (
+                                    <FormItem key={option} className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={checked}
+                                          onCheckedChange={(nextChecked) => {
+                                            if (nextChecked) {
+                                              field.onChange([...selected, option]);
+                                              return;
+                                            }
+
+                                            field.onChange(selected.filter((item) => item !== option));
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                        <FormLabel>{option}</FormLabel>
+                                        <p className="text-xs text-muted-foreground">Add this support service to the site brief.</p>
+                                      </div>
+                                    </FormItem>
+                                  );
+                                })}
+                              </div>
+                            );
+                          }}
+                        />
+                      </div>
+                    </div>
 
                     <FormField
                       control={form.control}
@@ -1739,51 +1787,6 @@ export default function EstimateForm() {
                         />
                       </div>
 
-                      <div className="space-y-4 rounded-2xl border bg-muted/20 p-5">
-                        <div>
-                          <h3 className="font-semibold text-lg">Add-on Services</h3>
-                          <p className="text-xs text-muted-foreground">
-                            Choose optional site-related support services such as site visits, verification, fencing, and surveys.
-                          </p>
-                        </div>
-                        <FormField
-                          control={form.control}
-                          name="selectedAddOnServices"
-                          render={({ field }) => {
-                            const selected = Array.isArray(field.value) ? field.value : [];
-
-                            return (
-                              <div className="grid gap-3 md:grid-cols-2">
-                                {ADD_ON_SERVICE_OPTIONS.map((option) => {
-                                  const checked = selected.includes(option);
-
-                                  return (
-                                    <FormItem key={option} className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={checked}
-                                          onCheckedChange={(nextChecked) => {
-                                            if (nextChecked) {
-                                              field.onChange([...selected, option]);
-                                              return;
-                                            }
-
-                                            field.onChange(selected.filter((item) => item !== option));
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <div className="space-y-1 leading-none">
-                                        <FormLabel>{option}</FormLabel>
-                                        <p className="text-xs text-muted-foreground">Add this support service to the site brief.</p>
-                                      </div>
-                                    </FormItem>
-                                  );
-                                })}
-                              </div>
-                            );
-                          }}
-                        />
-                      </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
