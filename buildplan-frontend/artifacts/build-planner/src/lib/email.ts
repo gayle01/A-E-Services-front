@@ -269,9 +269,79 @@ export function generateProjectEmail(data: ProjectEmailData): string {
 
 export async function sendProjectEmail(data: ProjectEmailData): Promise<boolean> {
   try {
-    const emailHtml = generateProjectEmail(data);
-    
-    // Create a simple text version for the subject
+    // Create a plain text summary for the email body
+    const formatCurrency = (amount: number, currency: string) => {
+      const symbols: Record<string, string> = {
+        USD: "$",
+        EUR: "€",
+        GBP: "£",
+        GHS: "₵",
+        NGN: "₦",
+        CNY: "¥",
+      };
+      const symbol = symbols[currency] || "$";
+      return `${symbol}${amount.toLocaleString()}`;
+    };
+
+    const emailBody = `
+NEW PROJECT ESTIMATE REQUEST
+
+PROJECT SUMMARY
+---------------
+Project Name: ${data.projectName}
+Location: ${data.location}
+Building Type: ${data.buildingType}
+Project Type: ${data.projectType}
+Floor Area: ${data.floorArea} m²
+Number of Floors: ${data.numberOfFloors}
+Bedrooms: ${data.numberOfBedrooms}
+Bathrooms: ${data.numberOfBathrooms}
+
+ESTIMATED COST: ${formatCurrency(data.totalCost, data.ownerCurrency)}
+DURATION: ${data.durationMin}-${data.durationMax} months
+COMPLEXITY: ${data.complexityLabel} (${data.complexityScore}%)
+
+OWNER INFORMATION
+-----------------
+Name: ${data.ownerName || "Not provided"}
+Profession: ${data.ownerProfession}
+Annual Income: ${formatCurrency(data.ownerAnnualIncome, data.ownerCurrency)}
+
+PRIMARY USER
+------------
+Name: ${data.primaryUserName || "Same as owner"}
+Profession: ${data.primaryUserProfession}
+Annual Income: ${formatCurrency(data.primaryUserAnnualIncome, data.primaryUserCurrency)}
+
+COST BREAKDOWN
+--------------
+Materials: ${formatCurrency(data.costBreakdown.material, data.ownerCurrency)}
+Labour: ${formatCurrency(data.costBreakdown.labour, data.ownerCurrency)}
+Professional Fees: ${formatCurrency(data.costBreakdown.professionalFees, data.ownerCurrency)}
+Contingency (8%): ${formatCurrency(data.costBreakdown.contingency, data.ownerCurrency)}
+TOTAL: ${formatCurrency(data.costBreakdown.total, data.ownerCurrency)}
+
+MATERIAL ESTIMATE
+-----------------
+${data.materialEstimate.items.map(item => 
+  `${item.materialName}: ${item.quantity} ${item.unit} x ${formatCurrency(item.unitPrice, data.ownerCurrency)} = ${formatCurrency(item.total, data.ownerCurrency)}`
+).join('\n')}
+
+Total Materials: ${formatCurrency(data.materialEstimate.total, data.ownerCurrency)}
+
+PROFESSIONAL FEES
+-----------------
+Architectural Services: ${formatCurrency(data.professionalFees.architectural, data.ownerCurrency)}
+Structural Engineering: ${formatCurrency(data.professionalFees.structuralEngineering, data.ownerCurrency)}
+Quantity Surveying: ${formatCurrency(data.professionalFees.quantitySurveying, data.ownerCurrency)}
+Project Management: ${formatCurrency(data.professionalFees.projectManagement, data.ownerCurrency)}
+Total Professional Fees: ${formatCurrency(data.professionalFees.total, data.ownerCurrency)}
+
+---
+This is an automated email from BUILD PLAN - Professional Construction Cost Estimation
+Submitted: ${new Date().toLocaleString()}
+    `.trim();
+
     const subject = `New Project Estimate: ${data.projectName}`;
     
     // Send via Formspree using fetch
@@ -284,7 +354,7 @@ export async function sendProjectEmail(data: ProjectEmailData): Promise<boolean>
         name: "BUILD PLAN System",
         email: companyEmail,
         subject: subject,
-        message: emailHtml,
+        message: emailBody,
         projectName: data.projectName,
         location: data.location,
         buildingType: data.buildingType,
