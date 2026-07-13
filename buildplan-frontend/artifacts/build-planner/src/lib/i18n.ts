@@ -29,6 +29,7 @@ export const AREA_UNITS = [
   { code: "ft²", name: "Square Feet", toSqMeters: 0.092903 },
   { code: "ac", name: "Acres", toSqMeters: 4046.86 },
   { code: "ha", name: "Hectares", toSqMeters: 10000 },
+  { code: "plot", name: "Plot", toSqMeters: 1000 },
 ] as const;
 
 export type LengthUnit = (typeof LENGTH_UNITS)[number]["code"];

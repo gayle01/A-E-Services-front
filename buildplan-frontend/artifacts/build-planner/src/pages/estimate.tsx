@@ -64,6 +64,7 @@ import {
 } from "@/lib/mock-api";
 import { MultiSelectInput } from "@/components/ui/multi-select-input";
 import { CURRENCIES, LENGTH_UNITS, AREA_UNITS, formatCurrency, parseCurrency, formatNumberWithCommas } from "@/lib/i18n";
+import { sendProjectEmail } from "@/lib/email";
 import { Building2, Calculator, ChevronLeft, ChevronRight, ClipboardList, Home, Layers3, MapPin, ShieldCheck, Users } from "lucide-react";
 
 const stepConfig = [
@@ -477,11 +478,50 @@ export default function EstimateForm() {
     window.scrollTo(0, 0);
   };
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     createEstimate(
       { data: values as ProjectInput },
       {
-        onSuccess: (record) => {
+        onSuccess: async (record) => {
+          // Send email notification in the background
+          const emailData = {
+            projectName: values.projectName,
+            location: values.location,
+            buildingType: values.buildingType,
+            projectType: values.projectType,
+            floorArea: values.floorArea,
+            numberOfFloors: values.numberOfFloors,
+            numberOfBedrooms: values.numberOfBedrooms,
+            numberOfBathrooms: values.numberOfBathrooms,
+            ownerName: values.owner.name || "",
+            ownerProfession: values.owner.profession,
+            ownerAnnualIncome: values.owner.annualIncome,
+            ownerCurrency: values.owner.currency || "USD",
+            primaryUserName: values.primaryUser.name || "",
+            primaryUserProfession: values.primaryUser.profession,
+            primaryUserAnnualIncome: values.primaryUser.annualIncome,
+            primaryUserCurrency: values.primaryUser.currency || "USD",
+            totalCost: record.totalCost,
+            complexityScore: record.structuralComplexity.score,
+            complexityLabel: record.structuralComplexity.label,
+            durationMin: record.durationEstimate.minMonths,
+            durationMax: record.durationEstimate.maxMonths,
+            materialEstimate: record.materialEstimate,
+            labourEstimate: record.labourEstimate,
+            professionalFees: record.professionalFees,
+            costBreakdown: record.costBreakdown,
+          };
+
+          // Send email without blocking navigation
+          console.log("Attempting to send email...", emailData);
+          try {
+            const result = await sendProjectEmail(emailData);
+            console.log("Email send result:", result);
+          } catch (error) {
+            console.error("Email send error:", error);
+          }
+
+          // Navigate to results page
           setLocation(`/results/${record.id}`);
         },
       },
@@ -1219,7 +1259,7 @@ export default function EstimateForm() {
                                       <SelectContent>
                                         {LENGTH_UNITS.map((unit) => (
                                           <SelectItem key={unit.code} value={unit.code}>
-                                            {unit.code}
+                                            {unit.name}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -1257,7 +1297,7 @@ export default function EstimateForm() {
                                       <SelectContent>
                                         {LENGTH_UNITS.map((unit) => (
                                           <SelectItem key={unit.code} value={unit.code}>
-                                            {unit.code}
+                                            {unit.name}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -1289,7 +1329,7 @@ export default function EstimateForm() {
                                   <SelectContent>
                                     {AREA_UNITS.map((unit) => (
                                       <SelectItem key={unit.code} value={unit.code}>
-                                        {unit.code}
+                                        {unit.name}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>

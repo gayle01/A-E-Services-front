@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 
 const defaultGreetings = [
-  "Hello",
-  "Bonjour",
-  "Hola",
-  "Hallo",
-  "Ciao",
-  "Olá",
-  "Ahoj",
-  "Namaste",
-  "Salaam",
-  "Zdravstvuyte",
+  "Welcome",
+  "Bienvenue",
+  "Bienvenido",
+  "Willkommen",
+  "Benvenuto",
+  "Bem-vindo",
+  "Vítejte",
+  "स्वागत",
+  "خوش آمدید",
+  "Добро пожаловать",
 ];
 
 export function useGreetingAnimation(greetings = defaultGreetings, interval = 2500) {
