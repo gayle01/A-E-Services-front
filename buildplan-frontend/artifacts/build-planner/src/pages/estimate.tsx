@@ -273,7 +273,7 @@ export default function EstimateForm() {
     defaultValues: {
       projectName: "",
       location: "accra",
-      buildingType: "Residential",
+      buildingType: "",
       projectType: "New Build",
       constructionPhasing: "Single Phase",
       expectedCompletionTime: "12 months",
@@ -393,26 +393,110 @@ export default function EstimateForm() {
   const showYearsLeftOnLease = landTenure === "Leasehold";
   const showNaturalFeatureNotes = Boolean(selectedNaturalFeature?.trim());
   const suggestedSpaces = useMemo(() => {
-    const suggestions = new Set<string>(["Living Room", "Kitchen", "Bathrooms", "Circulation"]);
+    // No suggestions when building classification is not selected yet
+    if (!buildingType || buildingType.trim() === "") {
+      return [];
+    }
+
+    const suggestions = new Set<string>();
 
     if (buildingType.includes("Residential")) {
-      suggestions.add("Dining Area");
-      suggestions.add("Primary Bedroom");
-      suggestions.add("Guest Room");
-      suggestions.add("Laundry");
+      suggestions.add("Living Room");
+      suggestions.add("Kitchen");
+      suggestions.add("Dining Room");
+      suggestions.add("Master Bedroom");
+      suggestions.add("Secondary Bedrooms");
+      suggestions.add("Bathrooms");
+      suggestions.add("Laundry/Utility Room");
+      suggestions.add("Garage/Carport");
     }
 
     if (buildingType.includes("Commercial")) {
       suggestions.add("Reception");
-      suggestions.add("Open Office");
+      suggestions.add("Retail/Showroom or Customer Area");
+      suggestions.add("Office Workspace");
       suggestions.add("Meeting Room");
-      suggestions.add("Store");
+      suggestions.add("Storage Room");
+      suggestions.add("Staff Break Room");
+      suggestions.add("Public Washrooms");
+      suggestions.add("Loading/Service Area");
     }
 
     if (buildingType.includes("Educational")) {
-      suggestions.add("Classroom");
+      suggestions.add("Classrooms");
       suggestions.add("Library");
-      suggestions.add("Administration");
+      suggestions.add("Science/Computer Laboratory");
+      suggestions.add("Administration Office");
+      suggestions.add("Staff Room");
+      suggestions.add("Multipurpose Hall");
+      suggestions.add("Cafeteria/Canteen");
+      suggestions.add("Sports Field/Playground");
+    }
+
+    if (buildingType.includes("Healthcare")) {
+      suggestions.add("Reception & Registration");
+      suggestions.add("Waiting Area");
+      suggestions.add("Consultation Rooms");
+      suggestions.add("Treatment/Procedure Rooms");
+      suggestions.add("Patient Wards");
+      suggestions.add("Pharmacy");
+      suggestions.add("Laboratory");
+      suggestions.add("Emergency Department");
+    }
+
+    if (buildingType.includes("Industrial")) {
+      suggestions.add("Production Floor");
+      suggestions.add("Raw Material Storage");
+      suggestions.add("Finished Goods Warehouse");
+      suggestions.add("Loading Dock");
+      suggestions.add("Quality Control Laboratory");
+      suggestions.add("Maintenance Workshop");
+      suggestions.add("Administration Offices");
+      suggestions.add("Staff Welfare Facilities");
+    }
+
+    if (buildingType.includes("Institutional")) {
+      suggestions.add("Reception");
+      suggestions.add("Public Service Area");
+      suggestions.add("Offices");
+      suggestions.add("Board/Meeting Room");
+      suggestions.add("Records/Archive Room");
+      suggestions.add("Training/Conference Room");
+      suggestions.add("Staff Lounge");
+      suggestions.add("Security/Control Room");
+    }
+
+    if (buildingType.includes("Religious")) {
+      suggestions.add("Main Worship Hall/Sanctuary");
+      suggestions.add("Altar/Platform");
+      suggestions.add("Prayer Chapel/Prayer Room");
+      suggestions.add("Church Office/Pastor's Office");
+      suggestions.add("Fellowship Hall");
+      suggestions.add("Children's Ministry/Classrooms");
+      suggestions.add("Counselling Room");
+      suggestions.add("Parking Area");
+    }
+
+    if (buildingType.includes("Recreational")) {
+      suggestions.add("Sports Court/Field");
+      suggestions.add("Gym/Fitness Area");
+      suggestions.add("Swimming Pool (where applicable)");
+      suggestions.add("Changing Rooms");
+      suggestions.add("Clubhouse/Lounge");
+      suggestions.add("Equipment Storage");
+      suggestions.add("First Aid Room");
+      suggestions.add("Children's Play Area");
+    }
+
+    if (buildingType.includes("Agricultural")) {
+      suggestions.add("Barn/Livestock Housing");
+      suggestions.add("Equipment Shed");
+      suggestions.add("Crop Storage/Silo");
+      suggestions.add("Processing Area");
+      suggestions.add("Cold Room");
+      suggestions.add("Farm Office");
+      suggestions.add("Irrigation/Water Storage Facilities");
+      suggestions.add("Loading Area");
     }
 
     if (projectType === "Renovation") {
