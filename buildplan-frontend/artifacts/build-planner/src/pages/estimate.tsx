@@ -379,7 +379,7 @@ export default function EstimateForm() {
   });
 
   const watchedValues = form.watch();
-  const complexity = useMemo(() => calculateStructuralComplexity(watchedValues as ProjectInput), [watchedValues]);
+  const complexity = useMemo(() => calculateStructuralComplexity(watchedValues as unknown as ProjectInput), [watchedValues]);
   const ownLand = form.watch("ownLand");
   const plotLength = form.watch("plotLength");
   const plotBreadth = form.watch("plotBreadth");
@@ -480,7 +480,7 @@ export default function EstimateForm() {
 
   const onSubmit = async (values: FormValues) => {
     createEstimate(
-      { data: values as ProjectInput },
+      { data: values as unknown as ProjectInput },
       {
         onSuccess: async (record) => {
           // Send email notification in the background
@@ -612,7 +612,7 @@ export default function EstimateForm() {
                                 <MultiSelectInput
                                   value={field.value}
                                   onChange={field.onChange}
-                                  suggestions={PROFESSIONS as string[]}
+                                  suggestions={PROFESSIONS as unknown as string[]}
                                   placeholder="Start typing or add multiple professions with commas"
                                 />
                               </FormControl>
@@ -741,7 +741,7 @@ export default function EstimateForm() {
                                 <MultiSelectInput
                                   value={field.value || ""}
                                   onChange={field.onChange}
-                                  suggestions={SOCIAL_STATUSES as string[]}
+                                  suggestions={SOCIAL_STATUSES as unknown as string[]}
                                   placeholder="Select multiple social statuses with commas"
                                 />
                               </FormControl>
@@ -849,7 +849,7 @@ export default function EstimateForm() {
                                 <MultiSelectInput
                                   value={field.value}
                                   onChange={field.onChange}
-                                  suggestions={PROFESSIONS as string[]}
+                                  suggestions={PROFESSIONS as unknown as string[]}
                                   placeholder="Start typing or add multiple professions with commas"
                                 />
                               </FormControl>
@@ -978,7 +978,7 @@ export default function EstimateForm() {
                                 <MultiSelectInput
                                   value={field.value || ""}
                                   onChange={field.onChange}
-                                  suggestions={SOCIAL_STATUSES as string[]}
+                                  suggestions={SOCIAL_STATUSES as unknown as string[]}
                                   placeholder="Select multiple social statuses with commas"
                                 />
                               </FormControl>
@@ -1453,6 +1453,22 @@ export default function EstimateForm() {
                         )}
                       />
 
+                      <FormField
+                        control={form.control}
+                        name="hasVisitedLand"
+                        render={({ field }) => (
+                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>I have visited the land</FormLabel>
+                              <p className="text-xs text-muted-foreground">Yes / No</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
                       <div className="w-full space-y-4 rounded-2xl border bg-muted/20 p-5">
                         <div>
                           <h3 className="font-semibold text-lg">Add-on Services</h3>
@@ -1499,22 +1515,6 @@ export default function EstimateForm() {
                         />
                       </div>
                     </div>
-
-                    <FormField
-                      control={form.control}
-                      name="hasVisitedLand"
-                      render={({ field }) => (
-                        <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                          <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>I have visited the land</FormLabel>
-                            <p className="text-xs text-muted-foreground">Yes / No</p>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <FormField
@@ -1573,7 +1573,7 @@ export default function EstimateForm() {
                             <MultiSelectInput
                               value={field.value || ""}
                               onChange={field.onChange}
-                              suggestions={ACCESS_WAYS as string[]}
+                              suggestions={ACCESS_WAYS as unknown as string[]}
                               placeholder="Select access directions with commas"
                             />
                           </FormControl>
@@ -1708,7 +1708,7 @@ export default function EstimateForm() {
                                 <MultiSelectInput
                                   value={field.value || ""}
                                   onChange={field.onChange}
-                                  suggestions={NATURAL_FEATURES as string[]}
+                                  suggestions={NATURAL_FEATURES as unknown as string[]}
                                   placeholder="Select multiple dominant features with commas"
                                 />
                               </FormControl>
@@ -1751,7 +1751,7 @@ export default function EstimateForm() {
                             <MultiSelectInput
                               value={field.value || ""}
                               onChange={field.onChange}
-                              suggestions={ORIENTATION_OPTIONS as string[]}
+                              suggestions={ORIENTATION_OPTIONS as unknown as string[]}
                               placeholder="Select multiple orientations with commas"
                             />
                           </FormControl>
@@ -1766,7 +1766,7 @@ export default function EstimateForm() {
                             <MultiSelectInput
                               value={field.value || ""}
                               onChange={field.onChange}
-                              suggestions={BUILDING_STYLES as string[]}
+                              suggestions={BUILDING_STYLES as unknown as string[]}
                               placeholder="Select multiple building styles with commas"
                             />
                           </FormControl>
@@ -1858,7 +1858,7 @@ export default function EstimateForm() {
                               <MultiSelectInput
                                 value={field.value || ""}
                                 onChange={field.onChange}
-                                suggestions={SITE_ZONE_TYPES as string[]}
+                                suggestions={SITE_ZONE_TYPES as unknown as string[]}
                                 placeholder="Select multiple site zone types with commas"
                               />
                             </FormControl>
@@ -1901,12 +1901,12 @@ export default function EstimateForm() {
                         <FormItem className="space-y-3">
                           <FormLabel>Building Classification</FormLabel>
                           <FormControl>
-                            <MultiSelectInput
-                              value={field.value}
-                              onChange={field.onChange}
-                              suggestions={BUILDING_TYPES as string[]}
-                              placeholder="Select multiple building types with commas"
-                            />
+                              <MultiSelectInput
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                suggestions={BUILDING_TYPES as unknown as string[]}
+                                placeholder="Select multiple building types with commas"
+                              />
                           </FormControl>
                           <p className="text-xs text-muted-foreground">Select the building classification that best matches the intended use of the project.</p>
                           <FormMessage />
@@ -2264,6 +2264,24 @@ export default function EstimateForm() {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="openAreaConcept"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>General Concept</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Describe your general concept and vision for the project. What are your goals, preferences, and any specific ideas you have in mind?"
+                              {...field}
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Share your overall vision, goals, and any specific concepts or ideas for the project.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <div className="space-y-4 rounded-2xl border bg-muted/20 p-5">
                       <h3 className="text-lg font-semibold">Budget and Fees</h3>
                       <div className="grid gap-6 md:grid-cols-3">
@@ -2309,7 +2327,7 @@ export default function EstimateForm() {
                           name="constructionFeeStructure"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Construction Fees</FormLabel>
+                              <FormLabel>Payment Tranch</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
@@ -2785,361 +2803,6 @@ export default function EstimateForm() {
                       </div>
                     </div>
                   </>
-                )}{currentStep === 999 && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <Layers3 className="h-5 w-5 text-primary" />
-                      Site Conditions
-                    </h2>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="siteAccessibility"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Site Accessibility</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select access level" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {SITE_ACCESSIBILITY.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="sitePlanAvailable"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Site Plan Available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="landTitleAvailable"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Land Title Available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="indentureAvailable"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Indenture Available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="siteZoneType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Site Zone Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select site zone" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {SITE_ZONE_TYPES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="siteTopography"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Site Topography</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select topography" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {TOPOGRAPHIES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="existingUtilities"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Existing Utilities</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select utility status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {['Available', 'Partial', 'Not Available'].map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="accessRoads"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Access Ways</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select access ways" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {ACCESS_ROADS.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="siteTopography"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Site Topography</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select topography" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {TOPOGRAPHIES.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="siteAccessibility"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Site Accessibility</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select access level" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {SITE_ACCESSIBILITY.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="sitePlanAvailable"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Site Plan Available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="landTitleAvailable"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Land Title Available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="indentureAvailable"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Indenture Available</FormLabel>
-                              <p className="text-sm text-muted-foreground">Yes / No</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                    {specialViews ? (
-                      <>
-                        <FormField
-                          control={form.control}
-                          name="naturalFeatures"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Dominant Features</FormLabel>
-                              <FormControl>
-                                <MultiSelectInput
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  suggestions={NATURAL_FEATURES as string[]}
-                                  placeholder="Select multiple dominant features with commas"
-                                />
-                              </FormControl>
-                              <p className="text-xs text-muted-foreground">Select one or more features present on or near the site.</p>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        {showNaturalFeatureNotes && (
-                          <FormField
-                            control={form.control}
-                            name="naturalFeatureNotes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Additional Notes</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Add any extra notes about the dominant features."
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <p className="text-xs text-muted-foreground">Share anything that could affect the design or site work.</p>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                      </>
-                    ) : null}
-                      <FormField
-                        control={form.control}
-                        name="existingUtilities"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Existing Utilities</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select utility status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {["Available", "Partial", "Not Available"].map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
                 )}
 
                 <datalist id="professions">
