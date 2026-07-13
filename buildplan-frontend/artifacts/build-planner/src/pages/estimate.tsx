@@ -2105,13 +2105,24 @@ export default function EstimateForm() {
                                       Remove
                                     </button>
                                   </div>
-                                  <div className="grid md:grid-cols-2 gap-3">
+                                  <div className="grid md:grid-cols-3 gap-3">
                                     <Input
                                       placeholder="Space name (e.g., Living Room)"
                                       value={space.name}
                                       onChange={(e) => {
                                         const newSpaces = [...spaces];
                                         newSpaces[index] = { ...space, name: e.target.value };
+                                        field.onChange(newSpaces);
+                                      }}
+                                    />
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      placeholder="Number of rooms"
+                                      value={space.quantity || 1}
+                                      onChange={(e) => {
+                                        const newSpaces = [...spaces];
+                                        newSpaces[index] = { ...space, quantity: Math.max(1, Number(e.target.value) || 1) };
                                         field.onChange(newSpaces);
                                       }}
                                     />
