@@ -317,7 +317,7 @@ export default function EstimateForm() {
       siteAccessibility: "Urban",
       finishLevel: "Standard",
       buildingShape: "Rectangular",
-      constructionMethod: "Conventional",
+      constructionMethod: "Traditional",
       ownLand: "Yes",
       landDocumentsHeld: "",
       landAssistanceBuyLand: false,
@@ -1312,7 +1312,7 @@ export default function EstimateForm() {
                         )}
                       />
                       <div className="space-y-2">
-                        <label className="text-sm font-medium leading-none">Plot Area</label>
+<label className="text-sm font-medium leading-none">Lot Area</label>
                         <div className="flex gap-2">
                           <Input value={Number(plotLength || 0) * Number(plotBreadth || 0)} readOnly />
                           <FormField

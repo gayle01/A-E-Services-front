@@ -109,6 +109,8 @@ export const PROFESSIONS = [
   "IT Specialist",
   "Social Worker",
   "Retired Professional",
+  "Investor",
+  "Business Man",
 ] as const;
 
 export const LOCATION_OPTIONS = [
