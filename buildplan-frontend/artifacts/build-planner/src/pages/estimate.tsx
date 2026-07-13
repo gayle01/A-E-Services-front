@@ -2116,13 +2116,11 @@ export default function EstimateForm() {
                                       }}
                                     />
                                     <Input
-                                      type="number"
-                                      min={1}
-                                      placeholder="Number of rooms"
-                                      value={space.quantity || 1}
+                                      placeholder="Description (e.g., number of rooms)"
+                                      value={space.notes || ""}
                                       onChange={(e) => {
                                         const newSpaces = [...spaces];
-                                        newSpaces[index] = { ...space, quantity: Math.max(1, Number(e.target.value) || 1) };
+                                        newSpaces[index] = { ...space, notes: e.target.value };
                                         field.onChange(newSpaces);
                                       }}
                                     />
@@ -2136,27 +2134,16 @@ export default function EstimateForm() {
                                       }}
                                     />
                                   </div>
-                                  <div className="grid md:grid-cols-2 gap-3">
-                                    <Input
-                                      type="number"
-                                      placeholder="Area (m²)"
-                                      value={space.area || ""}
-                                      onChange={(e) => {
-                                        const newSpaces = [...spaces];
-                                        newSpaces[index] = { ...space, area: parseFloat(e.target.value) || 0 };
-                                        field.onChange(newSpaces);
-                                      }}
-                                    />
-                                    <Input
-                                      placeholder="Notes (optional)"
-                                      value={space.notes || ""}
-                                      onChange={(e) => {
-                                        const newSpaces = [...spaces];
-                                        newSpaces[index] = { ...space, notes: e.target.value };
-                                        field.onChange(newSpaces);
-                                      }}
-                                    />
-                                  </div>
+                                  <Input
+                                    type="number"
+                                    placeholder="Area (m²)"
+                                    value={space.area || ""}
+                                    onChange={(e) => {
+                                      const newSpaces = [...spaces];
+                                      newSpaces[index] = { ...space, area: parseFloat(e.target.value) || 0 };
+                                      field.onChange(newSpaces);
+                                    }}
+                                  />
                                 </div>
                               ))}
                               <button
