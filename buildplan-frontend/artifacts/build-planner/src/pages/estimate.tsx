@@ -2329,7 +2329,7 @@ export default function EstimateForm() {
                                 </SelectItem>
                               ))}
                             </SelectContent>
-                          </Select>
+                          </Select>sho
                           <FormMessage />
                         </FormItem>
                       )}
@@ -2352,6 +2352,30 @@ export default function EstimateForm() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Finishes Quality */}
+                    <div className="space-y-4 rounded-2xl border bg-muted/20 p-5">
+                      <h3 className="text-lg font-semibold">Finishes Quality</h3>
+                      <p className="text-xs text-muted-foreground">Select the desired quality level for finishes and materials.</p>
+                      <FormField
+                        control={form.control}
+                        name="finishLevel"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
+                                {FINISH_LEVELS.map((level) => (
+                                  <StepButton key={level} selected={field.value === level} onSelect={() => field.onChange(level)}>
+                                    {level}
+                                  </StepButton>
+                                ))}
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
                     <div className="space-y-4 rounded-2xl border bg-muted/20 p-5">
                       <h3 className="text-lg font-semibold">Budget and Fees</h3>
@@ -2654,24 +2678,6 @@ export default function EstimateForm() {
                             </RadioGroup>
                           </FormControl>
                           <p className="text-xs text-muted-foreground">Choose the main building footprint shape for the design.</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="finishLevel"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Finish Level</FormLabel>
-                          <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-3">
-                            {FINISH_LEVELS.map((level) => (
-                              <StepButton key={level} selected={field.value === level} onSelect={() => field.onChange(level)}>
-                                {level}
-                              </StepButton>
-                            ))}
-                          </RadioGroup>
                           <FormMessage />
                         </FormItem>
                       )}
