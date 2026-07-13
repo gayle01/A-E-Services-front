@@ -1510,7 +1510,7 @@ export default function EstimateForm() {
                           </FormControl>
                           <div className="space-y-1 leading-none">
                             <FormLabel>I have visited the land</FormLabel>
-                            <p className="text-xs text-muted-foreground">Tick if applicable</p>
+                            <p className="text-xs text-muted-foreground">Yes / No</p>
                           </div>
                         </FormItem>
                       )}
@@ -1583,7 +1583,7 @@ export default function EstimateForm() {
                       )}
                     />
 
-                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="soilSurvey"
@@ -1592,7 +1592,7 @@ export default function EstimateForm() {
                             <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>I have done soil survey</FormLabel>
-                              <p className="text-xs text-muted-foreground">Yes / No</p>
+                              <p className="text-xs text-muted-foreground">Tick if applicable</p>
                             </div>
                           </FormItem>
                         )}
@@ -1605,7 +1605,7 @@ export default function EstimateForm() {
                             <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>I have done topographic survey</FormLabel>
-                              <p className="text-xs text-muted-foreground">Yes / No</p>
+                              <p className="text-xs text-muted-foreground">Tick if applicable</p>
                             </div>
                           </FormItem>
                         )}
@@ -1664,7 +1664,7 @@ export default function EstimateForm() {
                           <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} /></FormControl>
                           <div className="space-y-1 leading-none">
                             <FormLabel>There are special views</FormLabel>
-                            <p className="text-sm text-muted-foreground">Yes / No</p>
+                            <p className="text-sm text-muted-foreground">Tick if applicable</p>
                           </div>
                         </FormItem>
                       )}
