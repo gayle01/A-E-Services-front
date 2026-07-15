@@ -2214,7 +2214,7 @@ export default function EstimateForm() {
                                       }}
                                     />
                                     <Input
-                                      placeholder="Description (e.g., number of rooms)"
+                                      placeholder="Number of rooms"
                                       value={space.notes || ""}
                                       onChange={(e) => {
                                         const newSpaces = [...spaces];
