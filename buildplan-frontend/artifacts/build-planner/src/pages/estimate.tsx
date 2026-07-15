@@ -2213,15 +2213,20 @@ export default function EstimateForm() {
                                         field.onChange(newSpaces);
                                       }}
                                     />
-                                    <Input
-                                      placeholder="Number of rooms"
-                                      value={space.notes || ""}
-                                      onChange={(e) => {
-                                        const newSpaces = [...spaces];
-                                        newSpaces[index] = { ...space, notes: e.target.value };
-                                        field.onChange(newSpaces);
-                                      }}
-                                    />
+                                    <div className="flex items-center gap-1">
+                                      <Input
+                                        type="number"
+                                        min={1}
+                                        step={1}
+                                        placeholder="Rooms"
+                                        value={space.quantity || 1}
+                                        onChange={(e) => {
+                                          const newSpaces = [...spaces];
+                                          newSpaces[index] = { ...space, quantity: parseInt(e.target.value) || 1 };
+                                          field.onChange(newSpaces);
+                                        }}
+                                      />
+                                    </div>
                                     <Input
                                       placeholder="Dimensions (e.g., 5m x 4m)"
                                       value={space.dimensions || ""}
@@ -2232,27 +2237,30 @@ export default function EstimateForm() {
                                       }}
                                     />
                                   </div>
-                                  <Input
-                                    type="number"
-                                    step="any"
-                                    placeholder="Area (m²)"
-                                    value={space.area || ""}
-                                    onChange={(e) => {
-                                      const newSpaces = [...spaces];
-                                      newSpaces[index] = { ...space, area: parseFloat(e.target.value) || 0 };
-                                      field.onChange(newSpaces);
-                                    }}
-                                  />
-                                  <Textarea
-                                    placeholder="Notes (optional)"
-                                    value={space.notes || ""}
-                                    onChange={(e) => {
-                                      const newSpaces = [...spaces];
-                                      newSpaces[index] = { ...space, notes: e.target.value };
-                                      field.onChange(newSpaces);
-                                    }}
-                                    className="min-h-[60px]"
-                                  />
+                                  <div className="grid md:grid-cols-2 gap-3">
+                                    <Input
+                                      type="number"
+                                      step="any"
+                                      min={0}
+                                      placeholder="Area (m²)"
+                                      value={space.area || ""}
+                                      onChange={(e) => {
+                                        const newSpaces = [...spaces];
+                                        newSpaces[index] = { ...space, area: parseFloat(e.target.value) || 0 };
+                                        field.onChange(newSpaces);
+                                      }}
+                                    />
+                                    <Textarea
+                                      placeholder="Notes (optional)"
+                                      value={space.notes || ""}
+                                      onChange={(e) => {
+                                        const newSpaces = [...spaces];
+                                        newSpaces[index] = { ...space, notes: e.target.value };
+                                        field.onChange(newSpaces);
+                                      }}
+                                      className="min-h-[60px]"
+                                    />
+                                  </div>
                                 </div>
                               ))}
                               <button
