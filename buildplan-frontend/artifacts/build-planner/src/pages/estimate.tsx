@@ -65,7 +65,7 @@ import {
 import { MultiSelectInput } from "@/components/ui/multi-select-input";
 import { CURRENCIES, LENGTH_UNITS, AREA_UNITS, formatCurrency, parseCurrency, formatNumberWithCommas } from "@/lib/i18n";
 import { sendProjectEmail } from "@/lib/email";
-import { Building2, Calculator, ChevronLeft, ChevronRight, ClipboardList, Home, Layers3, MapPin, ShieldCheck, Users } from "lucide-react";
+import { Building2, Calculator, ChevronLeft, ChevronRight, ClipboardList, Home, Layers3, MapPin, Plus, ShieldCheck, Users } from "lucide-react";
 
 const stepConfig = [
   { title: "People Information", icon: Users },
@@ -2179,15 +2179,29 @@ export default function EstimateForm() {
                                 <div key={index} className="border rounded-lg p-4 space-y-3">
                                   <div className="flex justify-between items-center">
                                     <h4 className="font-medium">Space {index + 1}</h4>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        field.onChange(spaces.filter((_, i) => i !== index));
-                                      }}
-                                      className="text-destructive text-sm hover:underline"
-                                    >
-                                      Remove
-                                    </button>
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const duplicate = { ...space, name: space.name ? `${space.name} (copy)` : "" };
+                                          const newSpaces = [...spaces];
+                                          newSpaces.splice(index + 1, 0, duplicate);
+                                          field.onChange(newSpaces);
+                                        }}
+                                        className="text-primary text-sm hover:underline"
+                                      >
+                                        Duplicate
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          field.onChange(spaces.filter((_, i) => i !== index));
+                                        }}
+                                        className="text-destructive text-sm hover:underline"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
                                   </div>
                                   <div className="grid md:grid-cols-3 gap-3">
                                     <Input
@@ -2329,7 +2343,7 @@ export default function EstimateForm() {
                                 </SelectItem>
                               ))}
                             </SelectContent>
-                          </Select>sho
+                               </Select>
                           <FormMessage />
                         </FormItem>
                       )}

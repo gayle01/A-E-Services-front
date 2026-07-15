@@ -1,9 +1,0 @@
-{
-  "name": "buildplan-root",
-  "private": true,
-  "scripts": {
-    "dev": "npm --prefix buildplan-frontend/artifacts/build-planner run dev",
-    "build": "npm --prefix buildplan-frontend/artifacts/build-planner run build",
-    "serve": "npm --prefix buildplan-frontend/artifacts/build-planner run serve"
-  }
-}
