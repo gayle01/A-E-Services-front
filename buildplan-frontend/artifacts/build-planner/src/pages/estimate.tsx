@@ -2234,6 +2234,7 @@ export default function EstimateForm() {
                                   </div>
                                   <Input
                                     type="number"
+                                    step="any"
                                     placeholder="Area (m²)"
                                     value={space.area || ""}
                                     onChange={(e) => {
@@ -2241,6 +2242,16 @@ export default function EstimateForm() {
                                       newSpaces[index] = { ...space, area: parseFloat(e.target.value) || 0 };
                                       field.onChange(newSpaces);
                                     }}
+                                  />
+                                  <Textarea
+                                    placeholder="Notes (optional)"
+                                    value={space.notes || ""}
+                                    onChange={(e) => {
+                                      const newSpaces = [...spaces];
+                                      newSpaces[index] = { ...space, notes: e.target.value };
+                                      field.onChange(newSpaces);
+                                    }}
+                                    className="min-h-[60px]"
                                   />
                                 </div>
                               ))}
@@ -2467,237 +2478,55 @@ export default function EstimateForm() {
                         <Home className="h-5 w-5 text-primary" />
                         Desired Services
                       </h2>
-                      <div className="grid md:grid-cols-2 gap-6">
+
+                      {/* Add-on Services (from Site Features) */}
+                      <div className="w-full space-y-4 rounded-2xl border bg-muted/20 p-5">
+                        <div>
+                          <h3 className="font-semibold text-lg">Add-on Services</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Choose optional site-related support services such as site visits, verification, fencing, and surveys.
+                          </p>
+                        </div>
                         <FormField
                           control={form.control}
-                          name="constructionPhasing"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Phasing</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select phasing" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {CONSTRUCTION_PHASES.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                      {option}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="soilCondition"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Soil Condition</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select soil condition" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {SOIL_CONDITIONS.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                      {option}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          name="selectedAddOnServices"
+                          render={({ field }) => {
+                            const selected = Array.isArray(field.value) ? field.value : [];
+
+                            return (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {ADD_ON_SERVICE_OPTIONS.map((option) => {
+                                  const checked = selected.includes(option);
+
+                                  return (
+                                    <FormItem key={option} className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={checked}
+                                          onCheckedChange={(nextChecked) => {
+                                            if (nextChecked) {
+                                              field.onChange([...selected, option]);
+                                              return;
+                                            }
+
+                                            field.onChange(selected.filter((item) => item !== option));
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                        <FormLabel>{option}</FormLabel>
+                                        <p className="text-xs text-muted-foreground">Add this support service to the site brief.</p>
+                                      </div>
+                                    </FormItem>
+                                  );
+                                })}
+                              </div>
+                            );
+                          }}
                         />
                       </div>
-                      <FormField
-                        control={form.control}
-                        name="floorArea"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Floor Area (m²)</FormLabel>
-                            <FormControl>
-                              <Input type="number" min={10} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="numberOfFloors"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Number of Floors</FormLabel>
-                            <FormControl>
-                              <Input type="number" min={1} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
 
-                    <h3 className="text-lg font-semibold mt-6 mb-4">Desired Services</h3>
-
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="basement"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Basement</FormLabel>
-                              <p className="text-xs text-muted-foreground">Include basement</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="largeOpenSpaces"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Large Open Spaces</FormLabel>
-                              <p className="text-xs text-muted-foreground">Include large open spaces</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="cantileversOrBalconies"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Cantilevers or Balconies</FormLabel>
-                              <p className="text-xs text-muted-foreground">Include cantilevers or balconies</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="numberOfBedrooms"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Number of Bedrooms</FormLabel>
-                            <FormControl>
-                              <Input type="number" min={0} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="numberOfBathrooms"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Number of Bathrooms</FormLabel>
-                            <FormControl>
-                              <Input type="number" min={0} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="roofType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Roof Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select roof type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {ROOF_TYPES.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-muted-foreground">Choose the roof type that best fits the building design.</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="roofStyle"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Roof Style</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select roof style" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {ROOF_STYLES.map((style) => (
-                                <SelectItem key={style} value={style}>
-                                  {style}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-muted-foreground">Select the visual roof style for the project.</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="buildingShape"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Building Shape</FormLabel>
-                          <FormControl>
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 md:grid-cols-2">
-                              {BUILDING_SHAPES.map((shape) => (
-                                <StepButton key={shape} selected={field.value === shape} onSelect={() => field.onChange(shape)}>
-                                  {shape}
-                                </StepButton>
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">Choose the main building footprint shape for the design.</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid gap-6 lg:grid-cols-2">
+                      {/* Scope of Service */}
                       <FormField
                         control={form.control}
                         name="architecturalScope"
@@ -2722,175 +2551,129 @@ export default function EstimateForm() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="foundationType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Foundation Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select foundation type" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {FOUNDATION_TYPES.map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {type}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="structuralSystem"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Structural System</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select structural system" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {STRUCTURAL_SYSTEMS.map((system) => (
-                                  <SelectItem key={system} value={system}>
-                                    {system}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
 
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="architecturalServices"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Architectural Services</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include architectural services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="structuralEngineeringServices"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Structural Engineering</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include structural engineering services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="mepEngineering"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>MEP Engineering</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include MEP engineering services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="interiorDesign"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Interior Design</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include interior design services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="customElements"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Custom Elements</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include custom design elements</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="postContractServices"
-                        render={({ field }) => (
-                          <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Post-Contract Services</FormLabel>
-                              <p className="text-sm text-muted-foreground">Include post-contract services</p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                      {/* Service Checklists */}
+                      <h3 className="text-lg font-semibold">Service Checklists</h3>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="architecturalServices"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Architectural Services</FormLabel>
+                                <p className="text-sm text-muted-foreground">Include architectural services</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="structuralEngineeringServices"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Structural Engineering</FormLabel>
+                                <p className="text-sm text-muted-foreground">Include structural engineering services</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="mepEngineering"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>MEP Engineering</FormLabel>
+                                <p className="text-sm text-muted-foreground">Include MEP engineering services</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="interiorDesign"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Interior Design</FormLabel>
+                                <p className="text-sm text-muted-foreground">Include interior design services</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="customElements"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Custom Elements</FormLabel>
+                                <p className="text-sm text-muted-foreground">Include custom design elements</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="postContractServices"
+                          render={({ field }) => (
+                            <FormItem className="rounded-xl border p-4 flex flex-row items-start gap-3">
+                              <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Post-Contract Services</FormLabel>
+                                <p className="text-sm text-muted-foreground">Include post-contract services</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                    <div className="rounded-2xl border bg-muted/40 p-6 mt-8">
-                      <h3 className="font-semibold mb-4 text-lg">Project Feasibility Assessment</h3>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium">Feasibility Score</span>
-                          <span className="text-2xl font-bold text-primary">{complexity.score}%</span>
-                        </div>
-                        <div className="relative h-4 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-500 ease-out"
-                            style={{ width: `${complexity.score}%` }}
-                          />
-                          <div className="absolute top-0 left-0 h-full flex items-center justify-between px-2 text-xs font-medium text-white/80">
-                            <span>Low</span>
-                            <span>Medium</span>
-                            <span>High</span>
+                      <div className="rounded-2xl border bg-muted/40 p-6 mt-8">
+                        <h3 className="font-semibold mb-4 text-lg">Project Feasibility Assessment</h3>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium">Feasibility Score</span>
+                            <span className="text-2xl font-bold text-primary">{complexity.score}%</span>
                           </div>
+                          <div className="relative h-4 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-500 ease-out"
+                              style={{ width: `${complexity.score}%` }}
+                            />
+                            <div className="absolute top-0 left-0 h-full flex items-center justify-between px-2 text-xs font-medium text-white/80">
+                              <span>Low</span>
+                              <span>Medium</span>
+                              <span>High</span>
+                            </div>
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>100%</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-4">
+                            Based on the information provided, your project has a <span className="font-semibold text-foreground">{complexity.label}</span> complexity level. This assessment considers factors like building type, site conditions, structural requirements, and selected services.
+                          </p>
                         </div>
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                          <span>0%</span>
-                          <span>50%</span>
-                          <span>100%</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-4">
-                          Based on the information provided, your project has a <span className="font-semibold text-foreground">{complexity.label}</span> complexity level. This assessment considers factors like building type, site conditions, structural requirements, and selected services.
-                        </p>
                       </div>
                     </div>
                   </>
