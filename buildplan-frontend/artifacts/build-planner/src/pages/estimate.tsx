@@ -2213,19 +2213,21 @@ export default function EstimateForm() {
                                         field.onChange(newSpaces);
                                       }}
                                     />
-                                    <Input
-                                      type="number"
-                                      min={1}
-                                      step={1}
-                                      placeholder="Numbers"
-                                      value={space.quantity > 1 ? space.quantity : ""}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        const newSpaces = [...spaces];
-                                        newSpaces[index] = { ...space, quantity: val ? parseInt(val) || 1 : 1 };
-                                        field.onChange(newSpaces);
-                                      }}
-                                    />
+                                    <div className="flex items-center gap-1">
+                                      <Input
+                                        type="number"
+                                        min={1}
+                                        step={1}
+                                        placeholder="Numbers"
+                                        value={space.quantity}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          const newSpaces = [...spaces];
+                                          newSpaces[index] = { ...space, quantity: val ? parseInt(val) || 1 : 1 };
+                                          field.onChange(newSpaces);
+                                        }}
+                                      />
+                                    </div>
                                     <Input
                                       placeholder="Dimensions (e.g., 5m x 4m)"
                                       value={space.dimensions || ""}
