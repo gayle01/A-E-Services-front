@@ -2214,8 +2214,11 @@ export default function EstimateForm() {
                                       }}
                                     />
                                     <Input
+                                      type="number"
+                                      min={1}
+                                      step={1}
                                       placeholder="Numbers"
-                                      value={space.quantity > 1 ? String(space.quantity) : ""}
+                                      value={space.quantity > 1 ? space.quantity : ""}
                                       onChange={(e) => {
                                         const val = e.target.value;
                                         const newSpaces = [...spaces];
