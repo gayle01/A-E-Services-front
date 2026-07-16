@@ -2213,20 +2213,16 @@ export default function EstimateForm() {
                                         field.onChange(newSpaces);
                                       }}
                                     />
-                                    <div className="flex items-center gap-1">
-                                      <Input
-                                        type="number"
-                                        min={1}
-                                        step={1}
-                                        placeholder="Rooms"
-                                        value={space.quantity || 1}
-                                        onChange={(e) => {
-                                          const newSpaces = [...spaces];
-                                          newSpaces[index] = { ...space, quantity: parseInt(e.target.value) || 1 };
-                                          field.onChange(newSpaces);
-                                        }}
-                                      />
-                                    </div>
+                                    <Input
+                                      placeholder="Numbers"
+                                      value={space.quantity > 1 ? String(space.quantity) : ""}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        const newSpaces = [...spaces];
+                                        newSpaces[index] = { ...space, quantity: val ? parseInt(val) || 1 : 1 };
+                                        field.onChange(newSpaces);
+                                      }}
+                                    />
                                     <Input
                                       placeholder="Dimensions (e.g., 5m x 4m)"
                                       value={space.dimensions || ""}
