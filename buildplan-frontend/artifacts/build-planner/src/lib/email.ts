@@ -54,323 +54,116 @@ export function generateProjectEmail(data: ProjectEmailData): string {
   const formatCurrency = (amount: number, currency: string) => {
     const symbols: Record<string, string> = {
       USD: "$",
-      EUR: "€",
-      GBP: "£",
-      GHS: "₵",
-      NGN: "₦",
-      CNY: "¥",
+      EUR: "\u20AC",
+      GBP: "\u00A3",
+      GHS: "\u20B5",
+      NGN: "\u20A6",
+      CNY: "\u00A5",
     };
     const symbol = symbols[currency] || "$";
-    return `${symbol}${amount.toLocaleString()}`;
+    return symbol + amount.toLocaleString();
   };
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Project Estimate - ${data.projectName}</title>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #0b1d3a 0%, #1e3a5f 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
-    .header h1 { margin: 0; font-size: 28px; }
-    .header p { margin: 10px 0 0 0; opacity: 0.9; }
-    .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-    .section h2 { color: #0b1d3a; margin-top: 0; font-size: 20px; border-bottom: 2px solid #0b1d3a; padding-bottom: 10px; }
-    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-    .info-item { background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #0b1d3a; }
-    .info-label { font-size: 12px; color: #666; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
-    .info-value { font-size: 16px; color: #333; font-weight: 600; }
-    .cost-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    .cost-table th { background: #0b1d3a; color: white; padding: 12px; text-align: left; font-weight: 600; }
-    .cost-table td { padding: 12px; border-bottom: 1px solid #ddd; }
-    .cost-table tr:hover { background: #f5f5f5; }
-    .total-row { background: #e8f4f8 !important; font-weight: bold; }
-    .total-row td { color: #0b1d3a; font-size: 16px; }
-    .highlight-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-    .highlight-box h3 { margin: 0 0 10px 0; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; border-top: 1px solid #ddd; margin-top: 30px; }
-    .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
-    .badge-simple { background: #28a745; color: white; }
-    .badge-moderate { background: #ffc107; color: #333; }
-    .badge-complex { background: #dc3545; color: white; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🏗️ New Project Estimate Request</h1>
-    <p>Project: ${data.projectName} | Submitted: ${new Date().toLocaleString()}</p>
-  </div>
+  const sep = "----------------------------------------";
+  const line = "\n";
 
-  <div class="highlight-box">
-    <h3>📊 Project Summary</h3>
-    <p><strong>Location:</strong> ${data.location} | <strong>Type:</strong> ${data.buildingType} | <strong>Area:</strong> ${data.floorArea} m²</p>
-    <p><strong>Estimated Cost:</strong> ${formatCurrency(data.totalCost, data.ownerCurrency)} | <strong>Duration:</strong> ${data.durationMin}-${data.durationMax} months</p>
-    <p><strong>Complexity:</strong> <span class="badge badge-${data.complexityLabel.toLowerCase()}">${data.complexityLabel} (${data.complexityScore}%)</span></p>
-  </div>
+  let text = "";
 
-  <div class="section">
-    <h2>👤 Owner Information</h2>
-    <div class="info-grid">
-      <div class="info-item">
-        <div class="info-label">Name</div>
-        <div class="info-value">${data.ownerName || "Not provided"}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Profession</div>
-        <div class="info-value">${data.ownerProfession}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Annual Income</div>
-        <div class="info-value">${formatCurrency(data.ownerAnnualIncome, data.ownerCurrency)}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Primary User</div>
-        <div class="info-value">${data.primaryUserName || "Same as owner"}</div>
-      </div>
-    </div>
-  </div>
+  // Header
+  text += "NEW PROJECT ESTIMATE REQUEST" + line;
+  text += "Project: " + data.projectName + " | Submitted: " + new Date().toLocaleString() + line;
+  text += sep + line + line;
 
-  <div class="section">
-    <h2>🏢 Project Details</h2>
-    <div class="info-grid">
-      <div class="info-item">
-        <div class="info-label">Project Type</div>
-        <div class="info-value">${data.projectType}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Building Type</div>
-        <div class="info-value">${data.buildingType}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Floor Area</div>
-        <div class="info-value">${data.floorArea} m²</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Floors</div>
-        <div class="info-value">${data.numberOfFloors}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Bedrooms</div>
-        <div class="info-value">${data.numberOfBedrooms}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Bathrooms</div>
-        <div class="info-value">${data.numberOfBathrooms}</div>
-      </div>
-    </div>
-  </div>
+  // Project Summary
+  text += "PROJECT SUMMARY" + line;
+  text += "  Location: " + data.location + line;
+  text += "  Type: " + data.buildingType + line;
+  text += "  Area: " + data.floorArea + " m2" + line;
+  text += "  Estimated Cost: " + formatCurrency(data.totalCost, data.ownerCurrency) + line;
+  text += "  Duration: " + data.durationMin + "-" + data.durationMax + " months" + line;
+  text += "  Complexity: " + data.complexityLabel + " (" + data.complexityScore + "%)" + line;
+  text += sep + line + line;
 
-  <div class="section">
-    <h2>💰 Cost Breakdown</h2>
-    <table class="cost-table">
-      <thead>
-        <tr>
-          <th>Category</th>
-          <th>Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Materials</td>
-          <td>${formatCurrency(data.costBreakdown.material, data.ownerCurrency)}</td>
-        </tr>
-        <tr>
-          <td>Labour</td>
-          <td>${formatCurrency(data.costBreakdown.labour, data.ownerCurrency)}</td>
-        </tr>
-        <tr>
-          <td>Professional Fees</td>
-          <td>${formatCurrency(data.costBreakdown.professionalFees, data.ownerCurrency)}</td>
-        </tr>
-        <tr>
-          <td>Contingency (8%)</td>
-          <td>${formatCurrency(data.costBreakdown.contingency, data.ownerCurrency)}</td>
-        </tr>
-        <tr class="total-row">
-          <td><strong>Total Estimated Cost</strong></td>
-          <td><strong>${formatCurrency(data.costBreakdown.total, data.ownerCurrency)}</strong></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  // Owner Information
+  text += "OWNER INFORMATION" + line;
+  text += "  Name: " + (data.ownerName || "Not provided") + line;
+  text += "  Profession: " + data.ownerProfession + line;
+  text += "  Annual Income: " + formatCurrency(data.ownerAnnualIncome, data.ownerCurrency) + line;
+  text += "  Primary User: " + (data.primaryUserName || "Same as owner") + line;
+  text += sep + line + line;
 
-  <div class="section">
-    <h2>📦 Material Estimate</h2>
-    <table class="cost-table">
-      <thead>
-        <tr>
-          <th>Material</th>
-          <th>Quantity</th>
-          <th>Unit Price</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${data.materialEstimate.items.map(item => `
-        <tr>
-          <td>${item.materialName}</td>
-          <td>${item.quantity} ${item.unit}</td>
-          <td>${formatCurrency(item.unitPrice, data.ownerCurrency)}</td>
-          <td>${formatCurrency(item.total, data.ownerCurrency)}</td>
-        </tr>
-        `).join('')}
-        <tr class="total-row">
-          <td colspan="3"><strong>Total Materials</strong></td>
-          <td><strong>${formatCurrency(data.materialEstimate.total, data.ownerCurrency)}</strong></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  // Project Details
+  text += "PROJECT DETAILS" + line;
+  text += "  Project Type: " + data.projectType + line;
+  text += "  Building Type: " + data.buildingType + line;
+  text += "  Floor Area: " + data.floorArea + " m2" + line;
+  text += "  Floors: " + data.numberOfFloors + line;
+  text += "  Bedrooms: " + data.numberOfBedrooms + line;
+  text += "  Bathrooms: " + data.numberOfBathrooms + line;
+  text += sep + line + line;
 
-  <div class="section">
-    <h2>👷 Professional Fees</h2>
-    <table class="cost-table">
-      <thead>
-        <tr>
-          <th>Service</th>
-          <th>Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Architectural Services</td>
-          <td>${formatCurrency(data.professionalFees.architectural, data.ownerCurrency)}</td>
-        </tr>
-        <tr>
-          <td>Structural Engineering</td>
-          <td>${formatCurrency(data.professionalFees.structuralEngineering, data.ownerCurrency)}</td>
-        </tr>
-        <tr>
-          <td>Quantity Surveying</td>
-          <td>${formatCurrency(data.professionalFees.quantitySurveying, data.ownerCurrency)}</td>
-        </tr>
-        <tr>
-          <td>Project Management</td>
-          <td>${formatCurrency(data.professionalFees.projectManagement, data.ownerCurrency)}</td>
-        </tr>
-        <tr class="total-row">
-          <td><strong>Total Professional Fees</strong></td>
-          <td><strong>${formatCurrency(data.professionalFees.total, data.ownerCurrency)}</strong></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  // Cost Breakdown
+  text += "COST BREAKDOWN" + line;
+  text += "  Materials: " + formatCurrency(data.costBreakdown.material, data.ownerCurrency) + line;
+  text += "  Labour: " + formatCurrency(data.costBreakdown.labour, data.ownerCurrency) + line;
+  text += "  Professional Fees: " + formatCurrency(data.costBreakdown.professionalFees, data.ownerCurrency) + line;
+  text += "  Contingency (8%): " + formatCurrency(data.costBreakdown.contingency, data.ownerCurrency) + line;
+  text += "  TOTAL ESTIMATED COST: " + formatCurrency(data.costBreakdown.total, data.ownerCurrency) + line;
+  text += sep + line + line;
 
-  <div class="footer">
-    <p><strong>BUILD PLAN</strong> - Professional Construction Cost Estimation</p>
-    <p>This is an automated email. Please reply to contact the client.</p>
-  </div>
-</body>
-</html>
-  `.trim();
+  // Material Estimate
+  text += "MATERIAL ESTIMATE" + line;
+  text += "  " + "Material".padEnd(20) + "Qty".padEnd(12) + "Unit Price".padEnd(14) + "Total" + line;
+  text += "  " + "-".repeat(60) + line;
+  for (const item of data.materialEstimate.items) {
+    text += "  " + item.materialName.padEnd(20) + (item.quantity + " " + item.unit).padEnd(12) + formatCurrency(item.unitPrice, data.ownerCurrency).padEnd(14) + formatCurrency(item.total, data.ownerCurrency) + line;
+  }
+  text += "  " + "-".repeat(60) + line;
+  text += "  " + "TOTAL MATERIALS".padEnd(46) + formatCurrency(data.materialEstimate.total, data.ownerCurrency) + line;
+  text += sep + line + line;
+
+  // Professional Fees
+  text += "PROFESSIONAL FEES" + line;
+  text += "  Architectural Services: " + formatCurrency(data.professionalFees.architectural, data.ownerCurrency) + line;
+  text += "  Structural Engineering: " + formatCurrency(data.professionalFees.structuralEngineering, data.ownerCurrency) + line;
+  text += "  Quantity Surveying: " + formatCurrency(data.professionalFees.quantitySurveying, data.ownerCurrency) + line;
+  text += "  Project Management: " + formatCurrency(data.professionalFees.projectManagement, data.ownerCurrency) + line;
+  text += "  TOTAL PROFESSIONAL FEES: " + formatCurrency(data.professionalFees.total, data.ownerCurrency) + line;
+  text += sep + line + line;
+
+  // Footer
+  text += "BUILD PLAN - Professional Construction Cost Estimation" + line;
+  text += "This is an automated email. Please reply to contact the client." + line;
+
+  return text;
 }
 
 export async function sendProjectEmail(data: ProjectEmailData): Promise<boolean> {
   try {
-    // Create a plain text summary for the email body
-    const formatCurrency = (amount: number, currency: string) => {
-      const symbols: Record<string, string> = {
-        USD: "$",
-        EUR: "€",
-        GBP: "£",
-        GHS: "₵",
-        NGN: "₦",
-        CNY: "¥",
-      };
-      const symbol = symbols[currency] || "$";
-      return `${symbol}${amount.toLocaleString()}`;
-    };
+    const subject = "New Project Estimate: " + data.projectName;
+    const textContent = generateProjectEmail(data);
 
-    const emailBody = `
-NEW PROJECT ESTIMATE REQUEST
+    const payload = JSON.stringify({
+      _replyto: data.ownerEmail || companyEmail,
+      name: data.ownerName || "BUILD PLAN System",
+      email: data.ownerEmail || companyEmail,
+      subject: subject,
+      message: textContent,
+    });
 
-PROJECT SUMMARY
----------------
-Project Name: ${data.projectName}
-Location: ${data.location}
-Building Type: ${data.buildingType}
-Project Type: ${data.projectType}
-Floor Area: ${data.floorArea} m²
-Number of Floors: ${data.numberOfFloors}
-Bedrooms: ${data.numberOfBedrooms}
-Bathrooms: ${data.numberOfBathrooms}
-
-ESTIMATED COST: ${formatCurrency(data.totalCost, data.ownerCurrency)}
-DURATION: ${data.durationMin}-${data.durationMax} months
-COMPLEXITY: ${data.complexityLabel} (${data.complexityScore}%)
-
-OWNER INFORMATION
------------------
-Name: ${data.ownerName || "Not provided"}
-Profession: ${data.ownerProfession}
-Annual Income: ${formatCurrency(data.ownerAnnualIncome, data.ownerCurrency)}
-
-PRIMARY USER
-------------
-Name: ${data.primaryUserName || "Same as owner"}
-Profession: ${data.primaryUserProfession}
-Annual Income: ${formatCurrency(data.primaryUserAnnualIncome, data.primaryUserCurrency)}
-
-COST BREAKDOWN
---------------
-Materials: ${formatCurrency(data.costBreakdown.material, data.ownerCurrency)}
-Labour: ${formatCurrency(data.costBreakdown.labour, data.ownerCurrency)}
-Professional Fees: ${formatCurrency(data.costBreakdown.professionalFees, data.ownerCurrency)}
-Contingency (8%): ${formatCurrency(data.costBreakdown.contingency, data.ownerCurrency)}
-TOTAL: ${formatCurrency(data.costBreakdown.total, data.ownerCurrency)}
-
-MATERIAL ESTIMATE
------------------
-${data.materialEstimate.items.map(item => 
-  `${item.materialName}: ${item.quantity} ${item.unit} x ${formatCurrency(item.unitPrice, data.ownerCurrency)} = ${formatCurrency(item.total, data.ownerCurrency)}`
-).join('\n')}
-
-Total Materials: ${formatCurrency(data.materialEstimate.total, data.ownerCurrency)}
-
-PROFESSIONAL FEES
------------------
-Architectural Services: ${formatCurrency(data.professionalFees.architectural, data.ownerCurrency)}
-Structural Engineering: ${formatCurrency(data.professionalFees.structuralEngineering, data.ownerCurrency)}
-Quantity Surveying: ${formatCurrency(data.professionalFees.quantitySurveying, data.ownerCurrency)}
-Project Management: ${formatCurrency(data.professionalFees.projectManagement, data.ownerCurrency)}
-Total Professional Fees: ${formatCurrency(data.professionalFees.total, data.ownerCurrency)}
-
----
-This is an automated email from BUILD PLAN - Professional Construction Cost Estimation
-Submitted: ${new Date().toLocaleString()}
-    `.trim();
-
-    const subject = `New Project Estimate: ${data.projectName}`;
-    
-    // Send via Formspree using fetch
     const response = await fetch(formspreeUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: "BUILD PLAN System",
-        email: companyEmail,
-        subject: subject,
-        message: emailBody,
-        projectName: data.projectName,
-        location: data.location,
-        buildingType: data.buildingType,
-        totalCost: data.totalCost,
-        complexity: data.complexityLabel,
-        floorArea: data.floorArea,
-        numberOfFloors: data.numberOfFloors,
-        duration: `${data.durationMin}-${data.durationMax} months`,
-      }),
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: payload,
     });
 
     if (response.ok) {
       console.log("Email sent successfully via Formspree");
       return true;
     } else {
-      console.error("Failed to send email:", response.statusText);
+      const text = await response.text();
+      console.error("Formspree error:", response.status, text);
       return false;
     }
   } catch (error) {
