@@ -60,6 +60,7 @@ import {
   ZONING_OPTIONS,
   calculateStructuralComplexity,
   type ProjectInput,
+  type ProjectRecord,
   useCreateEstimate,
 } from "@/lib/mock-api";
 import { MultiSelectInput } from "@/components/ui/multi-select-input";
@@ -95,7 +96,7 @@ const estimateSchema = z.object({
   userId: z.number().optional(),
   projectName: z.string().min(2, "Project name is required."),
   location: z.string().min(1, "Location is required."),
-  landmark: z.string().optional(),
+  landmark: z.string().optional().or(z.literal("")),
   buildingType: z.string(),
   projectType: z.enum(PROJECT_TYPES),
   constructionPhasing: z.enum(CONSTRUCTION_PHASES),
@@ -103,29 +104,30 @@ const estimateSchema = z.object({
   projectComplexity: z.enum(PROJECT_COMPLEXITIES),
   designStyle: z.enum(DESIGN_STYLES),
   projectBudget: z.coerce.number().min(0).optional(),
-  projectBudgetCurrency: z.string().optional(),
+  projectBudgetCurrency: z.string().optional().or(z.literal("")),
   constructionFeeStructure: z.enum(["Single", "Double", "Multiple"]).optional(),
   openAreaConcept: z.enum(OPEN_AREA_CONCEPTS).optional(),
   architecturalStyle: z.enum(ARCHITECTURAL_STYLES).optional(),
   owner: z.object({
-    name: z.string().optional(),
+    name: z.string().optional().or(z.literal("")),
+    email: z.string().email("Please enter a valid email.").optional().or(z.literal("")),
     profession: z.string().min(2, "Owner profession is required."),
     annualIncome: z.coerce.number().min(0, "Owner annual income is required."),
-    currency: z.string().optional(),
+    currency: z.string().optional().or(z.literal("")),
     ageGroup: z.enum(AGE_GROUPS),
     religion: z.enum(RELIGIONS),
-    ethnicity: z.string().optional(),
+    ethnicity: z.string().optional().or(z.literal("")),
     socialStatus: z.string().optional(),
     maritalStatus: z.enum(MARITAL_STATUSES).optional(),
   }),
   primaryUser: z.object({
-    name: z.string().optional(),
+    name: z.string().optional().or(z.literal("")),
     profession: z.string().min(2, "Primary user profession is required."),
     annualIncome: z.coerce.number().min(0, "Primary user annual income is required."),
-    currency: z.string().optional(),
+    currency: z.string().optional().or(z.literal("")),
     ageGroup: z.enum(AGE_GROUPS),
     religion: z.enum(RELIGIONS),
-    ethnicity: z.string().optional(),
+    ethnicity: z.string().optional().or(z.literal("")),
     socialStatus: z.string().optional(),
     maritalStatus: z.enum(MARITAL_STATUSES).optional(),
   }),
@@ -138,7 +140,7 @@ const estimateSchema = z.object({
     area: z.coerce.number().optional(),
     notes: z.string().optional(),
   })).optional(),
-  measurement: z.string().optional(),
+  measurement: z.string().optional().or(z.literal("")),
   plotLength: z.coerce.number().min(0, "Plot length must be zero or more.").optional(),
   plotBreadth: z.coerce.number().min(0, "Plot breadth must be zero or more.").optional(),
   numberOfFloors: z.coerce.number().min(1, "Number of floors must be at least 1."),
@@ -151,7 +153,7 @@ const estimateSchema = z.object({
   buildingShape: z.enum(BUILDING_SHAPES),
   constructionMethod: z.enum(CONSTRUCTION_METHODS),
   ownLand: z.enum(OWN_LAND_OPTIONS),
-  landDocumentsHeld: z.string().optional(),
+  landDocumentsHeld: z.string().optional().or(z.literal("")),
   landAssistanceBuyLand: z.boolean(),
   landAssistanceSiteSelection: z.boolean(),
   sitePlanAvailable: z.boolean(),
@@ -164,28 +166,28 @@ const estimateSchema = z.object({
   plotLengthUnit: z.string().optional(),
   plotBreadthUnit: z.string().optional(),
   isIrregularSite: z.boolean().optional(),
-  sitePlanImage: z.string().optional(),
+  sitePlanImage: z.string().optional().or(z.literal("")),
   zoning: z.enum(ZONING_OPTIONS),
   environmentalZone: z.enum(ENVIRONMENTAL_ZONES),
-  siteZoneType: z.string().optional(),
+  siteZoneType: z.string().min(1, "Site zone type is required."),
   siteTopography: z.enum(TOPOGRAPHIES),
   hasVisitedLand: z.boolean().optional(),
   tellUsMore: z.string().optional(),
   soilSurvey: z.boolean(),
-  soilSurveyFile: z.string().optional(),
+  soilSurveyFile: z.string().optional().or(z.literal("")),
   topographicSurvey: z.boolean(),
-  topographicSurveyFile: z.string().optional(),
+  topographicSurveyFile: z.string().optional().or(z.literal("")),
   specialViews: z.boolean(),
-  viewLocation: z.string().optional(),
-  featuresOfViews: z.string().optional(),
-  naturalFeatures: z.string().optional(),
-  naturalFeatureNotes: z.string().optional(),
+  viewLocation: z.string().optional().or(z.literal("")),
+  featuresOfViews: z.string().optional().or(z.literal("")),
+  naturalFeatures: z.string().optional().or(z.literal("")),
+  naturalFeatureNotes: z.string().optional().or(z.literal("")),
   accessRoads: z.enum(ACCESS_ROADS),
-  accessWays: z.string().optional(),
-  orientation: z.string().optional(),
-  buildingStyle: z.string().optional(),
-  neighbourhoodCharacter: z.string().optional(),
-  existingUtilities: z.string().optional(),
+  accessWays: z.string().min(1, "Access way is required."),
+  orientation: z.string().min(1, "Orientation is required."),
+  buildingStyle: z.string().min(1, "Building style is required."),
+  neighbourhoodCharacter: z.string().min(1, "Neighbourhood character is required."),
+  existingUtilities: z.string().min(1, "Existing utilities is required."),
   roofStyle: z.enum(ROOF_STYLES).optional(),
   basement: z.boolean(),
   largeOpenSpaces: z.boolean(),
@@ -266,7 +268,7 @@ export default function EstimateForm() {
   const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const { mutate: createEstimate, isPending } = useCreateEstimate();
+  const { mutateAsync: createEstimate, isPending } = useCreateEstimate();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(estimateSchema),
@@ -563,53 +565,137 @@ export default function EstimateForm() {
   };
 
   const onSubmit = async (values: FormValues) => {
-    createEstimate(
-      { data: values as unknown as ProjectInput },
-      {
-        onSuccess: async (record) => {
-          // Send email notification in the background
-          const emailData = {
-            projectName: values.projectName,
-            location: values.location,
-            buildingType: values.buildingType,
-            projectType: values.projectType,
-            floorArea: values.floorArea,
-            numberOfFloors: values.numberOfFloors,
-            numberOfBedrooms: values.numberOfBedrooms,
-            numberOfBathrooms: values.numberOfBathrooms,
-            ownerName: values.owner.name || "",
-            ownerProfession: values.owner.profession,
-            ownerAnnualIncome: values.owner.annualIncome,
-            ownerCurrency: values.owner.currency || "USD",
-            primaryUserName: values.primaryUser.name || "",
-            primaryUserProfession: values.primaryUser.profession,
-            primaryUserAnnualIncome: values.primaryUser.annualIncome,
-            primaryUserCurrency: values.primaryUser.currency || "USD",
-            totalCost: record.totalCost,
-            complexityScore: record.structuralComplexity.score,
-            complexityLabel: record.structuralComplexity.label,
-            durationMin: record.durationEstimate.minMonths,
-            durationMax: record.durationEstimate.maxMonths,
-            materialEstimate: record.materialEstimate,
-            labourEstimate: record.labourEstimate,
-            professionalFees: record.professionalFees,
-            costBreakdown: record.costBreakdown,
-          };
+    try {
+      // First save the estimate
+      const record = await createEstimate({ data: values as unknown as ProjectInput });
 
-          // Send email without blocking navigation
-          console.log("Attempting to send email...", emailData);
-          try {
-            const result = await sendProjectEmail(emailData);
-            console.log("Email send result:", result);
-          } catch (error) {
-            console.error("Email send error:", error);
-          }
+      // Send email notification with all form data
+      const emailData = {
+        // People Info
+        ownerName: values.owner.name || "",
+        ownerEmail: values.owner.email || "",
+        ownerProfession: values.owner.profession,
+        ownerAnnualIncome: values.owner.annualIncome,
+        ownerCurrency: values.owner.currency || "USD",
+        ownerAgeGroup: values.owner.ageGroup,
+        ownerReligion: values.owner.religion,
+        ownerEthnicity: values.owner.ethnicity || "",
+        ownerSocialStatus: values.owner.socialStatus || "",
+        ownerMaritalStatus: values.owner.maritalStatus || "Single",
+        primaryUserName: values.primaryUser.name || "",
+        primaryUserProfession: values.primaryUser.profession,
+        primaryUserAnnualIncome: values.primaryUser.annualIncome,
+        primaryUserCurrency: values.primaryUser.currency || "USD",
+        primaryUserAgeGroup: values.primaryUser.ageGroup,
+        primaryUserReligion: values.primaryUser.religion,
+        primaryUserEthnicity: values.primaryUser.ethnicity || "",
+        primaryUserSocialStatus: values.primaryUser.socialStatus || "",
+        primaryUserMaritalStatus: values.primaryUser.maritalStatus || "Single",
+        primaryUserSameAsOwner: values.primaryUserSameAsOwner || false,
 
-          // Navigate to results page
-          setLocation(`/results/${record.id}`);
-        },
-      },
-    );
+        // Land & Site Info
+        ownLand: values.ownLand,
+        landDocumentsHeld: values.landDocumentsHeld || "",
+        landTenure: values.landTenure,
+        yearsLeftOnLease: values.yearsLeftOnLease || 0,
+        landAssistanceBuyLand: values.landAssistanceBuyLand,
+        landAssistanceSiteSelection: values.landAssistanceSiteSelection,
+        sitePlanAvailable: values.sitePlanAvailable,
+        landTitleAvailable: values.landTitleAvailable,
+        indentureAvailable: values.indentureAvailable,
+        plotLength: values.plotLength || 0,
+        plotBreadth: values.plotBreadth || 0,
+        plotSize: values.plotSize || 0,
+        isIrregularSite: values.isIrregularSite || false,
+        sitePlanImage: values.sitePlanImage || "",
+        zoning: values.zoning,
+        environmentalZone: values.environmentalZone,
+        siteZoneType: values.siteZoneType || "",
+        siteTopography: values.siteTopography,
+        siteAccessibility: values.siteAccessibility,
+        accessWays: values.accessWays || "",
+        soilSurvey: values.soilSurvey,
+        topographicSurvey: values.topographicSurvey,
+        specialViews: values.specialViews,
+        viewLocation: values.viewLocation || "",
+        featuresOfViews: values.featuresOfViews || "",
+        naturalFeatures: values.naturalFeatures || "",
+        naturalFeatureNotes: values.naturalFeatureNotes || "",
+        hasVisitedLand: values.hasVisitedLand || false,
+        tellUsMore: values.tellUsMore || "",
+        accessRoads: values.accessRoads,
+        orientation: values.orientation || "",
+        buildingStyle: values.buildingStyle || "",
+        neighbourhoodCharacter: values.neighbourhoodCharacter || "",
+        existingUtilities: values.existingUtilities || "",
+        roofComplexity: values.roofComplexity || "",
+        basement: values.basement,
+        largeOpenSpaces: values.largeOpenSpaces,
+        cantileversOrBalconies: values.cantileversOrBalconies,
+        selectedAddOnServices: values.selectedAddOnServices || [],
+
+        // Project Info
+        projectName: values.projectName,
+        location: values.location,
+        landmark: values.landmark || "",
+        buildingType: values.buildingType,
+        projectType: values.projectType,
+        constructionMethod: values.constructionMethod,
+        constructionPhasing: values.constructionPhasing,
+        expectedCompletionTime: values.expectedCompletionTime,
+        projectComplexity: values.projectComplexity,
+        designStyle: values.designStyle,
+        architecturalStyle: values.architecturalStyle || "",
+        openAreaConcept: values.openAreaConcept || "",
+        finishLevel: values.finishLevel,
+        projectBudget: values.projectBudget || 0,
+        projectBudgetCurrency: values.projectBudgetCurrency || "",
+        constructionFeeStructure: values.constructionFeeStructure || "",
+        floorArea: values.floorArea,
+        numberOfFloors: values.numberOfFloors,
+        numberOfBedrooms: values.numberOfBedrooms,
+        numberOfBathrooms: values.numberOfBathrooms,
+        roofType: values.roofType,
+        buildingShape: values.buildingShape,
+        measurement: values.measurement || "",
+        soilCondition: values.soilCondition,
+        spacesRequired: (values.spacesRequired || []).map(s => ({
+          name: s.name || "",
+          dimensions: s.dimensions || "",
+          quantity: s.quantity || 1,
+          area: s.area || 0,
+          notes: s.notes || "",
+        })),
+
+        // Services
+        architecturalScope: values.architecturalScope,
+        foundationType: values.foundationType,
+        structuralSystem: values.structuralSystem,
+        architecturalServices: values.architecturalServices,
+        structuralEngineeringServices: values.structuralEngineeringServices,
+        mepEngineering: values.mepEngineering,
+        interiorDesign: values.interiorDesign,
+        customElements: values.customElements,
+        postContractServices: values.postContractServices,
+        architectReferral: values.architectReferral,
+        serviceReferral: values.serviceReferral,
+        referralPercentage: values.referralPercentage,
+        complimentaryServices: values.complimentaryServices,
+      };
+
+      console.log("Attempting to send email...", emailData);
+      // Send email - fire and forget
+      sendProjectEmail(emailData).then((result) => {
+        console.log("Email send result:", result);
+      }).catch((error) => {
+        console.error("Email send error:", error);
+      });
+
+      // Navigate to results page
+      setLocation(`/results/${record.id}`);
+    } catch (error) {
+      console.error("Submit error:", error);
+    }
   };
 
   return (
@@ -682,6 +768,20 @@ export default function EstimateForm() {
                               <FormControl>
                                 <Input placeholder="Owner full name" {...field} />
                               </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="owner.email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email Address</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="your@email.com" {...field} />
+                              </FormControl>
+                              <p className="text-xs text-muted-foreground">We'll send the estimate and follow-up to this email.</p>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -2718,7 +2818,7 @@ export default function EstimateForm() {
                         <DialogHeader>
                           <DialogTitle>Review and confirm</DialogTitle>
                           <DialogDescription>
-                            We&apos;ll review your project details and confirm the request. Typically responds within 24 hours.
+                            We'll review your project details and confirm the request. Typically responds within 24 hours.
                           </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
@@ -2748,6 +2848,3 @@ export default function EstimateForm() {
     </MainLayout>
   );
 }
-
-
-

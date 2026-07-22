@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
-const port = Number(process.env.PORT ?? 5173);
+const port = Number(process.env.PORT ?? 5174);
 const basePath = process.env.BASE_PATH ?? "/";
 
 const sharedConfig = {

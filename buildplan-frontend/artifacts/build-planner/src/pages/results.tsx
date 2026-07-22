@@ -5,7 +5,6 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatGHS } from "@/lib/utils";
 import { useGetEstimate } from "@/lib/mock-api";
 import { ArrowLeft, Download, FileText, Layers3, Users, Wrench } from "lucide-react";
 import { format } from "date-fns";
@@ -29,7 +28,7 @@ function downloadJson(filename: string, data: unknown) {
 }
 
 export default function Results() {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const id = Number(params.id ?? 0);
   const { data: estimate, isLoading } = useGetEstimate(id, { query: { enabled: !!id } });
 
@@ -97,7 +96,7 @@ export default function Results() {
             <Card className="text-primary">
               <CardContent className="p-6 space-y-3">
                 <div className="text-sm text-muted-foreground uppercase tracking-wider">Estimated Construction Cost</div>
-                <div className="text-3xl font-bold">{formatGHS(estimate.totalCost)}</div>
+                <div className="text-3xl font-bold">Coming soon</div>
                 <div className="text-sm text-muted-foreground">
                   Duration: {estimate.durationEstimate.minMonths} - {estimate.durationEstimate.maxMonths} months
                 </div>
@@ -119,10 +118,10 @@ export default function Results() {
       <div className="container mx-auto px-4 md:px-8 py-10 max-w-7xl space-y-8">
         <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-4">
           {[
-            { label: "Estimated Construction Cost", value: formatGHS(estimate.totalCost), icon: FileText },
-            { label: "Material Cost", value: formatGHS(estimate.materialEstimate.total), icon: Layers3 },
-            { label: "Labour Cost", value: formatGHS(estimate.labourEstimate), icon: Wrench },
-            { label: "Professional Fees", value: formatGHS(estimate.professionalFees.total), icon: Users },
+            { label: "Estimated Construction Cost", value: "Coming soon", icon: FileText },
+            { label: "Material Cost", value: "Coming soon", icon: Layers3 },
+            { label: "Labour Cost", value: "Coming soon", icon: Wrench },
+            { label: "Professional Fees", value: "Coming soon", icon: Users },
             { label: "Estimated Duration", value: `${estimate.durationEstimate.minMonths} - ${estimate.durationEstimate.maxMonths} months`, icon: FileText },
           ].map((card) => (
             <Card key={card.label}>
@@ -140,28 +139,8 @@ export default function Results() {
             <CardHeader>
               <CardTitle>Cost Breakdown</CardTitle>
             </CardHeader>
-            <CardContent className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={[
-                    { name: "Material", value: estimate.costBreakdown.material },
-                    { name: "Labour", value: estimate.costBreakdown.labour },
-                    { name: "Fees", value: estimate.costBreakdown.professionalFees },
-                    { name: "Contingency", value: estimate.costBreakdown.contingency },
-                  ]} cx="50%" cy="50%" innerRadius={75} outerRadius={115} paddingAngle={4} dataKey="value">
-                    {[
-                      estimate.costBreakdown.material,
-                      estimate.costBreakdown.labour,
-                      estimate.costBreakdown.professionalFees,
-                      estimate.costBreakdown.contingency,
-                    ].map((_, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => formatGHS(value)} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+            <CardContent className="h-[320px] flex items-center justify-center text-muted-foreground">
+              Cost breakdown chart coming soon
             </CardContent>
           </Card>
 
@@ -175,7 +154,7 @@ export default function Results() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="materialName" />
                   <YAxis tickFormatter={(value) => `${value / 1000}k`} />
-                  <Tooltip formatter={(value: number) => formatGHS(value)} />
+                  <Tooltip />
                   <Bar dataKey="total" fill="#1d4ed8" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -193,7 +172,7 @@ export default function Results() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis tickFormatter={(value) => `${value / 1000}k`} />
-                <Tooltip formatter={(value: number) => formatGHS(value)} />
+                <Tooltip />
                 <Bar dataKey="value" fill="#ea580c" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

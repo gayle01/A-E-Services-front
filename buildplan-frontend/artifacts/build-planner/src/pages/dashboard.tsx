@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatGHS } from "@/lib/utils";
 import { getProjectsForCompare, useGetEstimateStats, useListEstimates } from "@/lib/mock-api";
 import { ArrowRight, BarChart3, CircleDollarSign, Clock3, Layers3, Plus, Scale, Wrench } from "lucide-react";
 import { format } from "date-fns";
@@ -68,10 +67,10 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
           {[
-            { label: "Estimated Construction Cost", value: formatGHS(stats?.totalConstructionCost ?? 0), icon: CircleDollarSign },
-            { label: "Material Cost", value: formatGHS(stats?.totalMaterialCost ?? 0), icon: Layers3 },
-            { label: "Labour Cost", value: formatGHS(stats?.totalLabourCost ?? 0), icon: Wrench },
-            { label: "Professional Fees", value: formatGHS(stats?.totalProfessionalFees ?? 0), icon: Scale },
+            { label: "Estimated Construction Cost", value: "Coming soon", icon: CircleDollarSign },
+            { label: "Material Cost", value: "Coming soon", icon: Layers3 },
+            { label: "Labour Cost", value: "Coming soon", icon: Wrench },
+            { label: "Professional Fees", value: "Coming soon", icon: Scale },
             { label: "Estimated Duration", value: `${stats?.estimatedDurationMonths ?? 0} months`, icon: Clock3 },
           ].map((card) => (
             <Card key={card.label}>
@@ -92,18 +91,8 @@ export default function Dashboard() {
                 Cost Breakdown
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={costChartData} cx="50%" cy="50%" innerRadius={75} outerRadius={115} paddingAngle={4} dataKey="value">
-                    {costChartData.map((entry, index) => (
-                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => formatGHS(value)} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+            <CardContent className="h-[320px] flex items-center justify-center text-muted-foreground">
+              Cost breakdown chart coming soon
             </CardContent>
           </Card>
 
@@ -117,7 +106,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="materialName" tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={(value) => `${value / 1000}k`} />
-                  <Tooltip formatter={(value: number) => formatGHS(value)} />
+                  <Tooltip />
                   <Bar dataKey="total" fill="#1d4ed8" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -136,7 +125,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis tickFormatter={(value) => `${value / 1000}k`} />
-                  <Tooltip formatter={(value: number) => formatGHS(value)} />
+                  <Tooltip />
                   <Bar dataKey="value" fill="#ea580c" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -159,7 +148,7 @@ export default function Dashboard() {
                     <div className="rounded-xl border p-4 hover:border-primary/50 transition-colors">
                       <div className="font-semibold line-clamp-1">{project.projectName}</div>
                       <div className="text-sm text-muted-foreground capitalize">{project.location} · {project.buildingType}</div>
-                      <div className="text-sm font-medium text-primary mt-2">{formatGHS(project.totalCost)}</div>
+                      <div className="text-sm font-medium text-primary mt-2">Cost: Coming soon</div>
                     </div>
                   </Link>
                 ))
@@ -213,10 +202,6 @@ export default function Dashboard() {
                         <div className="flex justify-between text-sm"><span>Area</span><span>{project.floorArea} m²</span></div>
                         <div className="flex justify-between text-sm"><span>Floors</span><span>{project.numberOfFloors}</span></div>
                         <div className="flex justify-between text-sm"><span>Complexity</span><span>{project.structuralComplexity.label} ({project.structuralComplexity.score})</span></div>
-                        <div className="flex justify-between text-sm font-semibold text-primary">
-                          <span>Total</span>
-                          <span>{formatGHS(project.totalCost)}</span>
-                        </div>
                         <div className="text-xs text-muted-foreground">Created {format(new Date(project.createdAt), "MMM d, yyyy")}</div>
                       </div>
                     ) : (

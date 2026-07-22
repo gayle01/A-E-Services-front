@@ -416,7 +416,6 @@ export default function Admin() {
                       <th className="text-left p-4">Project</th>
                       <th className="text-left p-4">Location</th>
                       <th className="text-left p-4">Type</th>
-                      <th className="text-left p-4">Cost</th>
                       <th className="text-left p-4">Link</th>
                     </tr>
                   </thead>
@@ -426,7 +425,6 @@ export default function Admin() {
                         <td className="p-4">{project.projectName}</td>
                         <td className="p-4 capitalize">{project.location}</td>
                         <td className="p-4">{project.buildingType}</td>
-                        <td className="p-4">{formatGHS(project.totalCost)}</td>
                         <td className="p-4">
                           <Button asChild variant="ghost" size="sm">
                             <Link href={`/results/${project.id}`}>Open report</Link>
@@ -530,8 +528,8 @@ export default function Admin() {
                   <CardTitle>Key Analytics</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Average project cost</span><span>{formatGHS(estimates?.length ? estimates.reduce((sum, project) => sum + project.totalCost, 0) / estimates.length : 0)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Highest project cost</span><span>{formatGHS(Math.max(...(estimates?.map((project) => project.totalCost) ?? [0]), 0))}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Average project cost</span><span>Coming soon</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Highest project cost</span><span>Coming soon</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Saved projects</span><span>{summary.projectCount}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Materials tracked</span><span>{summary.materialCount}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Users managed</span><span>{summary.userCount}</span></div>
